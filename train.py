@@ -5,6 +5,7 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+from tqdm.notebook import tqdm as tqdm_nb
 
 import torch
 import torch.nn as nn
@@ -37,8 +38,29 @@ def train(
         lr=learning_rate,
         weight_decay=1e-5)
 
-    # Initalize progress bar
-    pbar = tqdm(total=epochs, ascii=True, ncols=159)
+    # Check if environment is notebook
+    try:
+        get_ipython
+        is_notebook = True
+    except:
+        is_notebook = False
+
+    # Initalize progress bars depending on environment
+    if (is_notebook):
+        epoch_pbar = tqdm_nb(total=epochs, desc='Epochs')
+        train_pbar = tqdm_nb(total=len(train_dl), desc='Training Batches')
+        val_pbar = tqdm_nb(total=len(val_dl), desc='Validation Batches')
+    else:
+        epoch_pbar = tqdm_nb(
+            total=epochs, desc='Epochs', ascii=True, ncols=159)
+        train_pbar = tqdm_nb(
+            total=len(train_dl),
+            desc='Training Batches',
+            ascii=True, ncols=159)
+        val_pbar = tqdm_nb(
+            total=len(val_dl),
+            desc='Validation Batches',
+            ascii=True, ncols=159)
 
     # Loop over epochs
     for epoch in range(epochs):
@@ -49,6 +71,7 @@ def train(
         total_train_loss = 0
 
         # Training Loop
+        train_pbar.reset()
         for batch in train_dl:
 
             # Send inputs to device
@@ -70,19 +93,28 @@ def train(
             # Update training loss
             total_train_loss += loss.item()
 
+            # Update progress bar
+            if (epoch == 0):
+                mean_train_loss = total_train_loss
+            else:
+                mean_train_loss = np.mean(history['losses'])
+            train_pbar.set_postfix({
+                'avg. train loss':  mean_train_loss,
+                'cur. total loss': total_train_loss,
+                'cur. batch loss':  loss.item()
+            })
+            train_pbar.update(1)
 
-        history['losses'].append(total_train_loss)
-        history['times'][-1] = time.time() - history['times'][-1]
-
-
-        # Empty cache and set model for evaluation
+        # Empty GPU cache
         if (device == 'cuda'):
             torch.cuda.empty_cache()
 
+        # Set model for evaluation
         model.eval()
+        total_val_loss = 0
 
         # Validation Loop
-        total_val_loss = 0
+        val_pbar.reset()
         for batch in val_dl:
             # Send inputs to device
             x = batch['magnitude'].to(device)
@@ -95,15 +127,24 @@ def train(
             # Update validation loss
             total_val_loss += loss.item()
 
-        history['val_losses'].append(total_val_loss)
+            # Update progress bar
+            if (epoch == 0):
+                mean_val_loss = total_val_loss
+            else:
+                mean_val_loss = np.mean(history['val_losses'])
+            val_pbar.set_postfix({
+                'avg. valid loss': mean_val_loss,
+                'cur. total loss': total_val_loss,
+                'cur. batch loss': loss.item()
+            })
+            val_pbar.update(1)
 
-        pbar.set_postfix({
-            'avg. loss':  np.mean(history['losses']),
-            'cur. loss':  history['losses'][-1],
-            'avg. val. loss': np.mean(history['val_losses']),
-            'cur. val. loss': history['val_losses'][-1]
-        })
-        pbar.update(1)
+        # Update history
+        history['losses'].append(total_train_loss)
+        history['val_losses'].append(total_val_loss)
+        history['times'].append(time.time())
+        # Update progress bar
+        epoch_pbar.update(1)
 
 
     return model, history

@@ -3,7 +3,7 @@ from torch import nn
 
 
 class CDAE(nn.Module):
-    def __init__(self, n_layers=3, z_dim=8, in_channels=1):
+    def __init__(self, n_layers=3, z_dim=8, in_channels=1, batch_norm=False):
         super(CDAE, self).__init__()
 
         # Define activation "layer"
@@ -19,13 +19,19 @@ class CDAE(nn.Module):
         conv_sizes = [z_dim] + conv_sizes + [in_channels]
         encoder_layers = []
         for i in range(len(conv_sizes) - 1):
+            # Conv layer
             encoder_layers.append(nn.Conv2d(
                 in_channels=conv_sizes[-1-i],
                 out_channels=conv_sizes[-1-i-1],
                 kernel_size=3,
                 padding='same'))
+            # Relu activation
             encoder_layers.append(self.relu)
+            # Max pooling layer
             encoder_layers.append(self.pool)
+            # Batch normalization layer
+            if (batch_norm):
+                encoder_layers.append(nn.BatchNorm2d(conv_sizes[-1-i-1]))
 
         self.encoder = nn.Sequential(*encoder_layers)
 

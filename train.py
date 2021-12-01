@@ -26,7 +26,7 @@ def train(
         'params': {
             'epochs': epochs,
             'learning_rate': learning_rate,
-            'critetion': critetion._get_name
+            'critetion': criterion._get_name
         }
     }
 

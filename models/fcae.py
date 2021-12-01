@@ -1,5 +1,4 @@
 import numpy as np
-import torch
 from torch import nn
 
 
@@ -12,6 +11,7 @@ class FCAE(nn.Module):
         # Define input dimensions
         self.input_dim = input_dim
         self.n_input = input_dim[0]*input_dim[1]
+        self.flatten = nn.Flatten()
 
         # Get layer dimensions
         layer_sizes = self._get_layer_dims(n_layers, z_dim, self.n_input)
@@ -62,7 +62,7 @@ class FCAE(nn.Module):
     def forward(self, x):
 
         # Flatten input
-        x = torch.flatten(x, 1)
+        x = self.flatten(x)
         # Encoder Chain
         z = self.encoder(x)
         # Decoder Chain

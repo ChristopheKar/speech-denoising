@@ -12,9 +12,9 @@ if __name__ == '__main__':
     # Dataset Options
     g_babble_range = np.linspace(0.05, 0.2, 5)
     g_room_range = np.linspace(0.5, 2, 4)
-    n_samples_babble_range = np.arange(10, 71, 10)
-    n_iters = 2
-    N = 20
+    n_samples_babble_range = np.arange(30, 71, 10)
+    n_iters = 1
+    N = 200
     save_noise = False
     save_phase = False
 

@@ -3,6 +3,7 @@ import json
 
 import numpy as np
 import librosa
+from tqdm import tqdm
 
 import torch
 import torchaudio
@@ -414,8 +415,6 @@ if __name__ == '__main__':
     srate = 16000
 
     ds = load_librispeech_subset(subset_name, data_root, data_dir)
-    N = len(ds)
-    print('Dataset Size: {}'.format(N))
 
     # Load Room Noise Data
     data_dir = 'RIRS_NOISES/real_rirs_isotropic_noises'
@@ -433,9 +432,12 @@ if __name__ == '__main__':
 
     rng = np.random.default_rng(seed=seed)
 
-
     N = len(ds)
     N = 20
+
+    # Initialize progress bar
+    print('Creating dataset...')
+    pbar = tqdm(total=N, ascii=True, ncols=79, desc='Progress')
 
     # Main Loop
     for idx in range(N):
@@ -523,4 +525,4 @@ if __name__ == '__main__':
                 np.save(os.path.join(dirpath, 'noised_stft_mags.npy'), noised_mags)
                 np.save(os.path.join(dirpath, 'noised_stft_phases.npy'), noised_phases)
 
-        print('Progress: {}/{}'.format(idx+1, N), end='\r')
+        pbar.update(1)

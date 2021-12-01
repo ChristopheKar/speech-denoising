@@ -11,17 +11,18 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 
 from dataset import NoisyLibriSpeechDataset
-from display import play_audio, plot_loss, display_results
+from display import play_audio, plot_losses, display_results
 from models import FCAE, CDAE, UNet
 
 
 def train(
-    device, model, dataloader,
+    device, model, train_dl, val_dl,
     epochs=100, learning_rate=1e-3, criterion=nn.MSELoss()):
 
     # Initialize training history
     history = {
         'losses': [],
+        'val_losses': [],
         'times': [],
         'params': {
             'epochs': epochs,
@@ -37,7 +38,7 @@ def train(
         weight_decay=1e-5)
 
     # Initalize progress bar
-    pbar = tqdm(total=epochs, ascii=True, ncols=119)
+    pbar = tqdm(total=epochs, ascii=True, ncols=159)
 
     # Loop over epochs
     for epoch in range(epochs):
@@ -47,8 +48,8 @@ def train(
         model.train()
         total_train_loss = 0
 
-        # Loop over batches
-        for batch in dataloader:
+        # Training Loop
+        for batch in train_dl:
 
             # Send inputs to device
             x = batch['magnitude'].to(device)
@@ -73,18 +74,45 @@ def train(
         history['losses'].append(total_train_loss)
         history['times'][-1] = time.time() - history['times'][-1]
 
+
+        # Empty cache and set model for evaluation
+        if (device == 'cuda'):
+            torch.cuda.empty_cache()
+
+        model.eval()
+
+        # Validation Loop
+        total_val_loss = 0
+        for batch in val_dl:
+            # Send inputs to device
+            x = batch['magnitude'].to(device)
+            y = batch['target'].to(device)
+
+            # Forward pass and loss
+            y_pred = model(x)
+            loss = criterion(y_pred, y)
+
+            # Update validation loss
+            total_val_loss += loss.item()
+
+        history['val_losses'].append(total_val_loss)
+
         pbar.set_postfix({
             'avg. loss':  np.mean(history['losses']),
-            'cur. loss':  history['losses'][-1]})
+            'cur. loss':  history['losses'][-1],
+            'avg. val. loss': np.mean(history['val_losses']),
+            'cur. val. loss': history['val_losses'][-1]
+        })
         pbar.update(1)
+
 
     return model, history
 
 
-def evaluate(model, data_test):
+def evaluate(device, model, data_test):
     sample = data_test[0]
     sample['denoised_magnitude'] = data_test.restore(model.forward(
-        sample['magnitude']).squeeze())
+        sample['magnitude'].to(device)).squeeze())
     sample = data_test.restore(sample)
 
     clean_waveform = data_test.libri[sample['libri_index']][0].numpy()[0]
@@ -120,17 +148,17 @@ if __name__ == '__main__':
     srate = 16000
     data_root = 'data/noised_synth_babble'
     libri_root = 'data/LibriSpeech/dev-clean'
-    seed = 1
+    seed = 11
     batch_size=8
 
     N = 2703
-    N = 5
+    N = 10
     test_size = .10
     conv = False
 
     # Create dataset splits
     train_idxs, val_idxs, test_idxs = get_data_split_idxs(
-        N, test_size=.10, seed=seed)
+        N, test_size=test_size, seed=seed)
 
     # Load training data
     data_train = NoisyLibriSpeechDataset(
@@ -156,9 +184,11 @@ if __name__ == '__main__':
         include_idxs=test_idxs, test=True,
         conv=conv, seed=seed)
 
+    show_split_sizes((data_train, data_val, data_test))
+
     # Model params
     loss = nn.MSELoss()
-    epochs = 2
+    epochs = 10
     learning_rate = 0.01
 
     # Create model and send to device
@@ -169,18 +199,17 @@ if __name__ == '__main__':
 
     # Train model
     model, hist = train(
-        device,
-        model,
-        train_dl,
+        device, model,
+        train_dl, val_dl,
         epochs=epochs,
         learning_rate=learning_rate,
         criterion=loss)
 
-    # Plot Loss
+    # Plot Losses
     fig, ax = plt.subplots(figsize=(10, 5))
-    ax = plot_loss(ax, hist['losses'], 'MSE')
+    ax = plot_losses(ax, hist, 'MSE')
     fig.show()
 
     # Evaluate Model
-    fig, axes = evaluate(model, data_test)
+    fig, axes = evaluate(device, model, data_test)
     fig.show()

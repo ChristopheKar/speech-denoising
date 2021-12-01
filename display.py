@@ -22,14 +22,28 @@ def play_audio(waveform, sample_rate):
         raise ValueError("Waveform with more than 2 channels are not supported.")
 
 
-def plot_loss(ax, losses, label='Loss', title=None):
-    ax.plot(losses)
+def plot_losses(ax, hist, label='Loss', title=None):
+    ax.plot(hist['losses'], label='Training Loss')
+    ax.plot(hist['val_losses'], label='Validation Loss')
     ax.set_ylabel(label)
     ax.set_xlabel('Epochs')
+    ax.legend()
     if (title is None):
         title = 'Loss Function'
     ax.set_title(title)
     return ax
+
+
+def show_split_sizes(loaders, names=('training', 'validation', 'testing')):
+    for name, loader in zip(names, loaders):
+        ns = len(loader)
+        if (loader.test):
+            ns = 0
+            for batch in loader:
+                ns += batch['magnitude'].shape[0]
+
+        print('{:s} data: {:d} samples // {:.2f} mins'.format(
+            name.title(), ns, ns/60))
 
 
 def display_results(clean_wav, noised_wav, denoised_wav, srate=16000):

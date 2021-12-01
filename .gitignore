@@ -7,5 +7,5 @@ __pycache__
 data/*
 !data/RIRS_NOISES
 
-# Ignore draft/test files
-test.ipynb
+# Ignore draft/archived files
+archive/

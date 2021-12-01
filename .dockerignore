@@ -6,5 +6,5 @@ __pycache__
 # Ignore data directory
 data
 
-# Ignore draft/test files
-test.ipynb
+# Ignore draft/archived files
+archive/

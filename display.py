@@ -46,7 +46,7 @@ def show_split_sizes(loaders, names=('training', 'validation', 'testing')):
             name.title(), ns, ns/60))
 
 
-def display_results(clean_wav, noised_wav, denoised_wav, srate=16000):
+def show_results(clean_wav, noised_wav, denoised_wav, srate=16000):
 
     print('Clean Signal')
     play_audio(clean_wav, srate)

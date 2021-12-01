@@ -10,8 +10,8 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
-from dataset import NoisyLibriSpeechDataset
-from display import play_audio, plot_losses, display_results
+import display
+from dataset import NoisyLibriSpeechDataset, utils
 from models import FCAE, CDAE, UNet
 
 
@@ -121,7 +121,7 @@ def evaluate(device, model, data_test):
     denoised_waveform = data_test.spec_to_wav(
         sample['denoised_magnitude'], sample['phase'])
 
-    fig, axes = display_results(
+    fig, axes = display.show_results(
         clean_waveform, noisy_waveform, denoised_waveform)
 
     return fig, axes
@@ -151,13 +151,12 @@ if __name__ == '__main__':
     seed = 11
     batch_size=8
 
-    N = 2703
-    N = 10
+    N = 20
     test_size = .10
     conv = False
 
     # Create dataset splits
-    train_idxs, val_idxs, test_idxs = get_data_split_idxs(
+    train_idxs, val_idxs, test_idxs = utils.get_data_split_idxs(
         N, test_size=test_size, seed=seed)
 
     # Load training data
@@ -184,11 +183,11 @@ if __name__ == '__main__':
         include_idxs=test_idxs, test=True,
         conv=conv, seed=seed)
 
-    show_split_sizes((data_train, data_val, data_test))
+    display.show_split_sizes((data_train, data_val, data_test))
 
     # Model params
     loss = nn.MSELoss()
-    epochs = 10
+    epochs = 2
     learning_rate = 0.01
 
     # Create model and send to device
@@ -207,7 +206,7 @@ if __name__ == '__main__':
 
     # Plot Losses
     fig, ax = plt.subplots(figsize=(10, 5))
-    ax = plot_losses(ax, hist, 'MSE')
+    ax = display.plot_losses(ax, hist, 'MSE')
     fig.show()
 
     # Evaluate Model

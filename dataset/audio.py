@@ -1,14 +1,18 @@
 import numpy as np
 import librosa
 
+__all__ = [
+    'wav_to_mag_phase',
+    'mag_phase_to_wav'
+]
 
 def wav_to_mag_phase(waveform, n_fft=1024, hop_len=64, win_len=512, window='hamming'):
     """Convert waveform to Magnitude and Phase through STFT"""
 
     spectrogram = librosa.stft(
-        waveform, n_fft=n_fft, hop_length=hop_len, 
+        waveform, n_fft=n_fft, hop_length=hop_len,
         win_length=win_len, window=window)
-    
+
     mag, phase = librosa.magphase(spectrogram)
     mag_db = librosa.amplitude_to_db(mag, ref=np.max)
 
@@ -26,5 +30,5 @@ def mag_phase_to_wav(mag, phase=None, hop_len=64, length=None, win_len=512, wind
         waveform = librosa.istft(
             spectrogram, hop_length=hop_len, length=length,
             win_length=win_len, window=window)
-    
+
     return waveform

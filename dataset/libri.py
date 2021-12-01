@@ -18,7 +18,9 @@ class NoisyLibriSpeechDataset(Dataset):
         self,
         data_root, libri_root,
         include_idxs=[], exclude_idxs=[], size=None,
-        test=False, conv=False, seed=1):
+        test=False, conv=False, seed=1, srate=16000):
+
+        self.srate = srate
 
         # Initialize random number generator
         self.rng = np.random.default_rng(seed)

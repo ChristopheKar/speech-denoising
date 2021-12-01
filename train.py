@@ -150,18 +150,28 @@ def train(
     return model, history
 
 
-def evaluate(device, model, data_test):
-    sample = data_test[0]
-    sample['denoised_magnitude'] = data_test.restore(model.forward(
+def evaluate(device, model, data):
+    # Load test sample
+    sample = data[0]
+    # Predict denoised magnitude
+    sample['denoised_magnitude'] = data.restore(model.forward(
         sample['magnitude'].to(device)).squeeze())
-    sample = data_test.restore(sample)
+    # Inverse transform sample
+    sample = data.restore(sample)
 
-    clean_waveform = data_test.libri[sample['libri_index']][0].numpy()[0]
-    noisy_waveform = data_test.spec_to_wav(
+    # Load clean waveform signal and pad
+    clean_waveform = data.libri[sample['libri_index']][0].numpy()[0]
+    pad_len = sample['magnitude'].shape[0]*data.srate
+    pad_len = pad_len - clean_waveform.shape[0]
+    clean_waveform = np.pad(clean_waveform, (0, pad_len))
+
+    # Reconstruct noised and denoised waveforms
+    noisy_waveform = data.spec_to_wav(
         sample['magnitude'], sample['phase'])
-    denoised_waveform = data_test.spec_to_wav(
+    denoised_waveform = data.spec_to_wav(
         sample['denoised_magnitude'], sample['phase'])
 
+    # Show results
     fig, axes = display.show_results(
         clean_waveform, noisy_waveform, denoised_waveform)
 

@@ -194,6 +194,7 @@ if __name__ == '__main__':
 
     # Set compute device
     device = set_device(verbose=True)
+    pin_memory = (device == 'cuda')
 
     # Data params
     srate = 16000
@@ -217,7 +218,7 @@ if __name__ == '__main__':
         conv=conv, seed=seed)
     train_dl = DataLoader(
         data_train, batch_size=batch_size,
-        num_workers=0, pin_memory=False)
+        num_workers=0, pin_memory=pin_memory)
 
     # Load validation data
     data_val = NoisyLibriSpeechDataset(
@@ -226,7 +227,7 @@ if __name__ == '__main__':
         conv=conv, seed=seed)
     val_dl = DataLoader(
         data_val, batch_size=batch_size,
-        num_workers=0, pin_memory=False)
+        num_workers=0, pin_memory=pin_memory)
 
     # Load testing data
     data_test = NoisyLibriSpeechDataset(

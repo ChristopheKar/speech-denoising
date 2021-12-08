@@ -50,13 +50,13 @@ def train(
         train_pbar = tqdm_nb(total=len(train_dl), desc='Training Batches')
         val_pbar = tqdm_nb(total=len(val_dl), desc='Validation Batches')
     else:
-        epoch_pbar = tqdm_nb(
+        epoch_pbar = tqdm(
             total=epochs, desc='Epochs', ascii=True, ncols=159)
-        train_pbar = tqdm_nb(
+        train_pbar = tqdm(
             total=len(train_dl),
             desc='Training Batches',
             ascii=True, ncols=159)
-        val_pbar = tqdm_nb(
+        val_pbar = tqdm(
             total=len(val_dl),
             desc='Validation Batches',
             ascii=True, ncols=159)

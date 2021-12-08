@@ -4,11 +4,53 @@ import numpy as np
 import librosa
 import torch
 import torchaudio
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 from torchvision.transforms import Compose
 
 from .audio import wav_to_mag_phase, mag_phase_to_wav
+from .utils import get_data_split_idxs
 from . import transforms
+
+
+def load_data(
+    N=10, test_size=.10,
+    data_root='data',
+    libri_root='data/LibriSpeech/dev-clean',
+    batch_size=8, pin_memory=False,
+    conv=True, seed=1, srate=16000):
+
+    # Create dataset splits
+    train_idxs, val_idxs, test_idxs = get_data_split_idxs(
+        N, test_size=test_size, seed=seed)
+
+    # Load training data
+    data_train = NoisyLibriSpeechDataset(
+        data_root=data_root, libri_root=libri_root,
+        include_idxs=train_idxs, test=False,
+        max_val=None, conv=conv, seed=seed)
+    train_dl = DataLoader(
+        data_train,
+        batch_size=batch_size,
+        pin_memory=False)
+
+    # Load validation data
+    data_val = NoisyLibriSpeechDataset(
+        data_root=data_root, libri_root=libri_root,
+        include_idxs=val_idxs, test=False,
+        max_val=data_train.scaler.max,
+        conv=conv, seed=seed)
+    val_dl = DataLoader(
+        data_val, batch_size=batch_size,
+        num_workers=0, pin_memory=False)
+
+    # Load testing data
+    data_test = NoisyLibriSpeechDataset(
+        data_root=data_root, libri_root=libri_root,
+        include_idxs=test_idxs, test=True,
+        max_val=data_train.scaler.max,
+        conv=conv, seed=seed)
+
+    return data_train, train_dl, data_val, val_dl, data_test
 
 
 class NoisyLibriSpeechDataset(Dataset):

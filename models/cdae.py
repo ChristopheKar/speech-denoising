@@ -6,6 +6,8 @@ class CDAE(nn.Module):
     def __init__(self, n_layers=3, z_dim=8, in_channels=1, batch_norm=False):
         super(CDAE, self).__init__()
 
+        self.name = 'Convolutional Autoencoder'
+
         # Define activation "layer"
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
@@ -46,6 +48,13 @@ class CDAE(nn.Module):
             decoder_layers.append(self.relu)
 
         self.decoder = nn.Sequential(*decoder_layers)
+
+
+    def __repr__(self):
+        return self.name + '()'
+
+    def __str__(self):
+        return self.name + '()'
 
 
     def _get_layer_dims(self, n_layers, z_dim, in_channels):

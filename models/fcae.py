@@ -8,6 +8,8 @@ class FCAE(nn.Module):
     def __init__(self, in_shape=(256, 256), n_layers=3, z_dim=64, dropout=0.):
         super(FCAE, self).__init__()
 
+        self.name = 'Fully Connected Autoencoder'
+
         # Define input dimensions
         self.in_shape = in_shape
         self.n_input = in_shape[0]*in_shape[1]
@@ -42,6 +44,13 @@ class FCAE(nn.Module):
             decoder_layers.append(self.relu)
 
         self.decoder = nn.Sequential(*decoder_layers)
+
+
+    def __repr__(self):
+        return self.name + '()'
+
+    def __str__(self):
+        return self.name + '()'
 
 
     def _get_layer_dims(self, n_layers, z_dim, n_input):

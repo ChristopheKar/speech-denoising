@@ -80,6 +80,9 @@ class UNet(nn.Module):
         retain_dim=True):
 
         super().__init__()
+
+        self.name = 'U-Net'
+
         # initialize the encoder and decoder
         encoder_channels = [in_channels] + list(encoder_channels)
         self.encoder = Encoder(encoder_channels)
@@ -88,6 +91,15 @@ class UNet(nn.Module):
         self.head = nn.Conv2d(decoder_channels[-1], n_classes, 1)
         self.retain_dim = retain_dim
         self.input_shape = in_shape
+
+
+    def __repr__(self):
+        return self.name + '()'
+
+
+    def __str__(self):
+        return self.name + '()'
+
 
     def forward(self, x):
         """Block forward pass."""

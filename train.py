@@ -9,10 +9,9 @@ from tqdm.notebook import tqdm as tqdm_nb
 
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
 
 import display
-from dataset import NoisyLibriSpeechDataset, utils
+from dataset.libri import load_data
 from models import FCAE, CDAE, UNet
 
 
@@ -194,74 +193,49 @@ if __name__ == '__main__':
 
     # Set compute device
     device = set_device(verbose=True)
-    pin_memory = (device == 'cuda')
 
-    # Data params
-    srate = 16000
-    data_root = 'data/noised_synth_babble'
-    libri_root = 'data/LibriSpeech/dev-clean'
-    seed = 11
-    batch_size=8
+    params = {
+        'network': UNet,
+        'data': {
+            'N': 10,
+            'test_size': .10,
+            'data_root': 'data/noised_synth_babble',
+            'libri_root': 'data/LibriSpeech/dev-clean',
+            'batch_size': 8,
+            'pin_memory': (device == 'cuda'),
+            'conv': True,
+            'seed': 1,
+            'srate': 16000
+        },
+        'model': {
+            'in_shape': (256, 256),
+            'in_channels': 1,
+            'n_classes': 1,
+            'encoder_channels': (4, 8, 16),
+            'decoder_channels': (16, 8, 4),
+            'retain_dim': True
+        },
+        'train': {
+            'epochs': 2,
+            'learning_rate': 0.001,
+            'criterion': nn.BCEWithLogitsLoss()
+        }
+    }
 
-    N = 20
-    test_size = .10
-    conv = False
+    model = params['network'](**params['model']).to(device)
+    print(model)
+    print('---')
 
-    # Create dataset splits
-    train_idxs, val_idxs, test_idxs = utils.get_data_split_idxs(
-        N, test_size=test_size, seed=seed)
-
-    # Load training data
-    data_train = NoisyLibriSpeechDataset(
-        data_root=data_root, libri_root=libri_root,
-        include_idxs=train_idxs, test=False,
-        max_val=None,
-        conv=conv, seed=seed)
-    train_dl = DataLoader(
-        data_train, batch_size=batch_size,
-        num_workers=0, pin_memory=False)
-
-    # Load validation data
-    data_val = NoisyLibriSpeechDataset(
-        data_root=data_root, libri_root=libri_root,
-        include_idxs=val_idxs, test=False,
-        max_val=data_train.scaler.max,
-        conv=conv, seed=seed)
-    val_dl = DataLoader(
-        data_val, batch_size=batch_size,
-        num_workers=0, pin_memory=False)
-
-    # Load testing data
-    data_test = NoisyLibriSpeechDataset(
-        data_root=data_root, libri_root=libri_root,
-        include_idxs=test_idxs, test=True,
-        max_val=data_train.scaler.max,
-        conv=conv, seed=seed)
-
+    print('\nLoading data...\n')
+    data_train, train_dl, data_val, val_dl, data_test = load_data(**params['data'])
     display.show_split_sizes((data_train, data_val, data_test))
 
-    # Model params
-    loss = nn.MSELoss()
-    epochs = 2
-    learning_rate = 0.01
-
-    # Create model and send to device
-    model = FCAE(
-        data_train.target_shape,
-        n_layers=4,
-        z_dim=8).to(device)
-
-    # Train model
-    model, hist = train(
-        device, model,
-        train_dl, val_dl,
-        epochs=epochs,
-        learning_rate=learning_rate,
-        criterion=loss)
+    print('\nTraining model...\n')
+    model, hist = train(device, model, train_dl, val_dl, **params['train'])
 
     # Plot Losses
     fig, ax = plt.subplots(figsize=(10, 5))
-    ax = display.plot_losses(ax, hist, 'MSE')
+    ax = display.plot_losses(ax, hist, repr(params['train']['criterion']))
     fig.show()
 
     # Evaluate Model

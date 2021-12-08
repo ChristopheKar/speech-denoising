@@ -215,24 +215,27 @@ if __name__ == '__main__':
     data_train = NoisyLibriSpeechDataset(
         data_root=data_root, libri_root=libri_root,
         include_idxs=train_idxs, test=False,
+        max_val=None,
         conv=conv, seed=seed)
     train_dl = DataLoader(
         data_train, batch_size=batch_size,
-        num_workers=0, pin_memory=pin_memory)
+        num_workers=0, pin_memory=False)
 
     # Load validation data
     data_val = NoisyLibriSpeechDataset(
         data_root=data_root, libri_root=libri_root,
         include_idxs=val_idxs, test=False,
+        max_val=data_train.scaler.max,
         conv=conv, seed=seed)
     val_dl = DataLoader(
         data_val, batch_size=batch_size,
-        num_workers=0, pin_memory=pin_memory)
+        num_workers=0, pin_memory=False)
 
     # Load testing data
     data_test = NoisyLibriSpeechDataset(
         data_root=data_root, libri_root=libri_root,
         include_idxs=test_idxs, test=True,
+        max_val=data_train.scaler.max,
         conv=conv, seed=seed)
 
     display.show_split_sizes((data_train, data_val, data_test))

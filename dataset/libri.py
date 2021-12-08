@@ -17,8 +17,10 @@ class NoisyLibriSpeechDataset(Dataset):
     def __init__(
         self,
         data_root, libri_root,
-        include_idxs=[], exclude_idxs=[], size=None,
-        test=False, conv=False, seed=1, srate=16000):
+        include_idxs=[], exclude_idxs=[],
+        size=None, test=False,
+        conv=False, max_val=None,
+        seed=1, srate=16000):
 
         self.srate = srate
 
@@ -103,7 +105,7 @@ class NoisyLibriSpeechDataset(Dataset):
             h=self.target_h, w=self.target_w)
         self.unsizer = transforms.ResizeMagnitude(
             h=self.init_h, w=self.init_w)
-        self.scaler = transforms.MinMaxScaler()
+        self.scaler = transforms.MinMaxScaler(max_val=max_val)
 
         self.transform = Compose([
             self.resizer,

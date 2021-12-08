@@ -17,6 +17,15 @@ pip install -r requirements.txt
 **Note:** This repo also uses Jupyter notebooks but that dependency is not
 listed in requirements.txt.
 
+## Venv
+
+You can create a virtual environment using `venv` and install the dependencies, for example:
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
 ### Docker
 
 The environment can also be setup using Docker and the provided `Dockerfile`.

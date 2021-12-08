@@ -5,12 +5,12 @@ from torch import nn
 class FCAE(nn.Module):
     """Implements a basic fully-connected autoencoder network"""
 
-    def __init__(self, input_dim=(256, 256), n_layers=3, z_dim=64, dropout=0.):
+    def __init__(self, in_shape=(256, 256), n_layers=3, z_dim=64, dropout=0.):
         super(FCAE, self).__init__()
 
         # Define input dimensions
-        self.input_dim = input_dim
-        self.n_input = input_dim[0]*input_dim[1]
+        self.in_shape = in_shape
+        self.n_input = in_shape[0]*in_shape[1]
         self.flatten = nn.Flatten()
 
         # Get layer dimensions
@@ -68,5 +68,5 @@ class FCAE(nn.Module):
         # Decoder Chain
         x = self.decoder(z)
         # Reshape output
-        out = x.reshape((-1, *self.input_dim))
+        out = x.reshape((-1, *self.in_shape))
         return out

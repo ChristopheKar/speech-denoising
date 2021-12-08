@@ -143,6 +143,10 @@ def train(
         history['val_losses'].append(total_val_loss)
         history['times'].append(time.time())
         # Update progress bar
+        rec_losses = ['{:.3f}'.format(i) for i in history['val_losses'][-5:]]
+        epoch_pbar.set_postfix({
+            'val. losses': ', '.join(rec_losses)
+        })
         epoch_pbar.update(1)
 
 

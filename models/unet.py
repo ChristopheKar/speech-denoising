@@ -1,125 +1,105 @@
-import numpy as np
 import torch
 from torch import nn
+from torch.nn import functional as F
+
+
+class Block(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super().__init__()
+
+        self.conv1 = nn.Conv2d(in_channels, out_channels, 3)
+        self.relu = nn.ReLU()
+        self.conv2 = nn.Conv2d(out_channels, out_channels, 3)
+
+    def forward(self, x):
+        """Block forward pass."""
+        return self.conv2(self.relu(self.conv1(x)))
+
+
+class Encoder(nn.Module):
+
+    def __init__(self, channels=(1, 16, 32, 64)):
+        super().__init__()
+
+        self.encoder_blocks = nn.ModuleList(
+            [Block(channels[i], channels[i + 1])
+                 for i in range(len(channels) - 1)])
+        self.pool = nn.MaxPool2d(2)
+
+    def forward(self, x):
+        """Block forward pass."""
+        block_outputs = []
+        for block in self.encoder_blocks:
+            x = block(x)
+            block_outputs.append(x)
+            x = self.pool(x)
+
+        return block_outputs
+
+
+class Decoder(nn.Module):
+    def __init__(self, channels=(64, 32, 16)):
+        super().__init__()
+        self.channels = channels
+        self.upconvs = nn.ModuleList(
+            [nn.ConvTranspose2d(channels[i], channels[i + 1], 2, 2)
+                 for i in range(len(channels) - 1)])
+        self.decoder_blocks = nn.ModuleList(
+            [Block(channels[i], channels[i + 1])
+                 for i in range(len(channels) - 1)])
+
+    def forward(self, x, encoder_features):
+        """Block forward pass."""
+        for i in range(len(self.channels) - 1):
+            # Upsampling convolutions
+            x = self.upconvs[i](x)
+            # Manually center-crop the features
+            encoder_feature = self.crop(encoder_features[i], x)
+            # Concatenate encoder features with upsampled features
+            x = torch.cat([x, encoder_feature], dim=1)
+            # Pass through decoder block
+            x = self.decoder_blocks[i](x)
+
+        return x
+
+    def crop(self, features, x):
+        """Center crop `features` to match `x` shape."""
+        h = (features.shape[-2] - x.shape[-2])//2
+        w = (features.shape[-1] - x.shape[-1])//2
+        return features[:, :, h:-h, w:-w]
 
 
 class UNet(nn.Module):
     def __init__(
         self,
+        in_shape=(256, 256),
         in_channels=1,
-        n_classes=2,
-        depth=5,
-        wf=6,
-        padding=False,
-        batch_norm=False,
-        up_mode='upconv',
-    ):
-        """
-        Implementation of
-        U-Net: Convolutional Networks for Biomedical Image Segmentation
-        (Ronneberger et al., 2015)
-        https://arxiv.org/abs/1505.04597
-        Using the default arguments will yield the exact version used
-        in the original paper
-        Args:
-            in_channels (int): number of input channels
-            n_classes (int): number of output channels
-            depth (int): depth of the network
-            wf (int): number of filters in the first layer is 2**wf
-            padding (bool): if True, apply padding such that the input shape
-                            is the same as the output.
-                            This may introduce artifacts
-            batch_norm (bool): Use BatchNorm after layers with an
-                               activation function
-            up_mode (str): one of 'upconv' or 'upsample'.
-                           'upconv' will use transposed convolutions for
-                           learned upsampling.
-                           'upsample' will use bilinear upsampling.
-        """
-        super(UNet, self).__init__()
-        assert up_mode in ('upconv', 'upsample')
-        self.padding = padding
-        self.depth = depth
-        prev_channels = in_channels
-        self.down_path = nn.ModuleList()
-        for i in range(depth):
-            self.down_path.append(
-                UNetConvBlock(prev_channels, 2**(wf + i), padding, batch_norm))
-            prev_channels = 2 ** (wf + i)
+        n_classes=1,
+        encoder_channels=(16, 32, 64),
+        decoder_channels=(64, 32, 16),
+        retain_dim=True):
 
-        self.up_path = nn.ModuleList()
-        for i in reversed(range(depth - 1)):
-            self.up_path.append(
-                UNetUpBlock(prev_channels, 2 ** (wf + i), up_mode, padding, batch_norm)
-            )
-            prev_channels = 2 ** (wf + i)
-
-        self.last = nn.Conv2d(prev_channels, n_classes, kernel_size=1)
+        super().__init__()
+        # initialize the encoder and decoder
+        encoder_channels = [in_channels] + list(encoder_channels)
+        self.encoder = Encoder(encoder_channels)
+        self.decoder = Decoder(decoder_channels)
+        # initialize the regression head and store the class variables
+        self.head = nn.Conv2d(decoder_channels[-1], n_classes, 1)
+        self.retain_dim = retain_dim
+        self.input_shape = in_shape
 
     def forward(self, x):
-        blocks = []
-        for i, down in enumerate(self.down_path):
-            x = down(x)
-            if i != len(self.down_path) - 1:
-                blocks.append(x)
-                x = nn.MaxPool2d(2)(x)
+        """Block forward pass."""
+        encoder_features = self.encoder(x)
+        decoder_features = self.decoder(
+            encoder_features[::-1][0], encoder_features[::-1][1:])
+        # Pass through regression head for segmentation
+        segmentation_map = self.head(decoder_features)
+        # check to see if we are retaining the original output
+        # dimensions and if so, then resize the output to match them
+        if (self.retain_dim):
+            segmentation_map = F.interpolate(
+                segmentation_map, self.input_shape)
 
-        for i, up in enumerate(self.up_path):
-            x = up(x, blocks[-i - 1])
-
-        output = self.last(x)
-
-        return output
-
-
-class UNetConvBlock(nn.Module):
-    def __init__(self, in_size, out_size, padding, batch_norm):
-        super(UNetConvBlock, self).__init__()
-        block = []
-
-        block.append(nn.Conv2d(in_size, out_size, kernel_size=3, padding=int(padding)))
-        block.append(nn.ReLU())
-        if batch_norm:
-            block.append(nn.BatchNorm2d(out_size))
-
-        block.append(nn.Conv2d(out_size, out_size, kernel_size=3, padding=int(padding)))
-        block.append(nn.ReLU())
-        block.append(nn.Dropout2d(p=0.15)) # edited
-        if batch_norm:
-            block.append(nn.BatchNorm2d(out_size))
-
-        self.block = nn.Sequential(*block)
-
-    def forward(self, x):
-        out = self.block(x)
-        return out
-
-
-class UNetUpBlock(nn.Module):
-    def __init__(self, in_size, out_size, up_mode, padding, batch_norm):
-        super(UNetUpBlock, self).__init__()
-        if up_mode == 'upconv':
-            self.up = nn.ConvTranspose2d(in_size, out_size, kernel_size=2, stride=2)
-        elif up_mode == 'upsample':
-            self.up = nn.Sequential(
-                nn.Upsample(mode='bilinear', scale_factor=2),
-                nn.Conv2d(in_size, out_size, kernel_size=1),
-            )
-
-        self.conv_block = UNetConvBlock(in_size, out_size, padding, batch_norm)
-
-    def center_crop(self, layer, target_size):
-        _, _, layer_height, layer_width = layer.size()
-        diff_y = (layer_height - target_size[0]) // 2
-        diff_x = (layer_width - target_size[1]) // 2
-        return layer[
-            :, :, diff_y : (diff_y + target_size[0]), diff_x : (diff_x + target_size[1])
-        ]
-
-    def forward(self, x, bridge):
-        up = self.up(x)
-        crop1 = self.center_crop(bridge, up.shape[2:])
-        out = torch.cat([up, crop1], 1)
-        out = self.conv_block(out)
-
-        return out
+        return segmentation_map

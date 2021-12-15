@@ -14,7 +14,7 @@ class FromTensor(object):
     """Convert torch Tensor to numpy ndarray."""
 
     def __call__(self, x):
-        return x.detach().numpy()
+        return x.detach().cpu().numpy()
 
 
 class ToTensor(object):

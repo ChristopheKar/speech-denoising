@@ -62,98 +62,107 @@ def train(
             ascii=True, ncols=159)
 
     # Loop over epochs
-    for epoch in range(epochs):
-        history['times'].append(time.time())
+    try:
+        for epoch in range(epochs):
+            history['times'].append(time.time())
 
-        # Set the model in training mode
-        model.train()
-        total_train_loss = 0
+            # Set the model to training mode
+            model.train()
+            total_train_loss = 0
 
-        # Training Loop
-        train_pbar.reset()
-        for batch in train_dl:
+            # Training Loop
+            train_pbar.reset()
+            for batch in train_dl:
 
-            # Send inputs to device
-            x = batch['magnitude'].to(device)
-            y = batch['target'].to(device)
+                # Send inputs to device
+                x = batch['magnitude'].to(device)
+                y = batch['target'].to(device)
 
-            # Forward pass and loss
-            y_pred = model(x)
-            loss = criterion(y_pred, y)
+                # Forward pass and loss
+                y_pred = model(x)
+                loss = criterion(y_pred, y)
 
-            # Compute gradient
-            loss.backward()
+                # Compute gradient
+                loss.backward()
 
-            # Update model parameters and
-            # zero out previously accumulated gradients
-            optimizer.step()
-            optimizer.zero_grad()
+                # Update model parameters and
+                # zero out previously accumulated gradients
+                optimizer.step()
+                optimizer.zero_grad()
 
-            # Update training loss
-            total_train_loss += loss.item()
+                # Update training loss
+                total_train_loss += loss.item()
 
+                # Update progress bar
+                if (epoch == 0):
+                    mean_train_loss = total_train_loss
+                else:
+                    mean_train_loss = np.mean(history['losses'])
+                train_pbar.set_postfix({
+                    'avg. train loss':  mean_train_loss,
+                    'cur. total loss': total_train_loss,
+                    'cur. batch loss':  loss.item()
+                })
+                train_pbar.update(1)
+
+            # Empty GPU cache
+            if (device == 'cuda'):
+                torch.cuda.empty_cache()
+
+            # Set model for evaluation
+            model.eval()
+            total_val_loss = 0
+
+            # Validation Loop
+            val_pbar.reset()
+            for batch in val_dl:
+                # Send inputs to device
+                x = batch['magnitude'].to(device)
+                y = batch['target'].to(device)
+
+                # Forward pass and loss
+                y_pred = model(x)
+                loss = criterion(y_pred, y)
+
+                # Update validation loss
+                total_val_loss += loss.item()
+
+                # Update progress bar
+                if (epoch == 0):
+                    mean_val_loss = total_val_loss
+                else:
+                    mean_val_loss = np.mean(history['val_losses'])
+                val_pbar.set_postfix({
+                    'avg. valid loss': mean_val_loss,
+                    'cur. total loss': total_val_loss,
+                    'cur. batch loss': loss.item()
+                })
+                val_pbar.update(1)
+
+            # Update history
+            history['losses'].append(total_train_loss)
+            history['val_losses'].append(total_val_loss)
+            history['times'].append(time.time())
             # Update progress bar
-            if (epoch == 0):
-                mean_train_loss = total_train_loss
-            else:
-                mean_train_loss = np.mean(history['losses'])
-            train_pbar.set_postfix({
-                'avg. train loss':  mean_train_loss,
-                'cur. total loss': total_train_loss,
-                'cur. batch loss':  loss.item()
+            rec_losses = ['{:.3f}'.format(i) for i in history['val_losses'][-5:]]
+            epoch_pbar.set_postfix({
+                'val. losses': ', '.join(rec_losses)
             })
-            train_pbar.update(1)
+            epoch_pbar.update(1)
 
-        # Empty GPU cache
-        if (device == 'cuda'):
-            torch.cuda.empty_cache()
-
-        # Set model for evaluation
-        model.eval()
-        total_val_loss = 0
-
-        # Validation Loop
-        val_pbar.reset()
-        for batch in val_dl:
-            # Send inputs to device
-            x = batch['magnitude'].to(device)
-            y = batch['target'].to(device)
-
-            # Forward pass and loss
-            y_pred = model(x)
-            loss = criterion(y_pred, y)
-
-            # Update validation loss
-            total_val_loss += loss.item()
-
-            # Update progress bar
-            if (epoch == 0):
-                mean_val_loss = total_val_loss
-            else:
-                mean_val_loss = np.mean(history['val_losses'])
-            val_pbar.set_postfix({
-                'avg. valid loss': mean_val_loss,
-                'cur. total loss': total_val_loss,
-                'cur. batch loss': loss.item()
-            })
-            val_pbar.update(1)
-
-        # Update history
-        history['losses'].append(total_train_loss)
-        history['val_losses'].append(total_val_loss)
-        history['times'].append(time.time())
-        # Update progress bar
-        rec_losses = ['{:.3f}'.format(i) for i in history['val_losses'][-5:]]
-        epoch_pbar.set_postfix({
-            'val. losses': ', '.join(rec_losses)
-        })
-        epoch_pbar.update(1)
+    except KeyboardInterrupt:
+        print('Ctrl-C Keyboard Interrupt Detected...')
+        print('Stopping training and returning model and history')
+        print()
+        return model, history
 
 
     return model, history
 
 
 def evaluate(device, model, data):
+    # Set model to evaluation mode
+    model.eval()
     # Load test sample
     sample = data[0]
     # Predict denoised magnitude

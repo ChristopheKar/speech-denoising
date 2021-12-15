@@ -1,6 +1,7 @@
 import os
 import json
 import time
+import argparse
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -12,11 +13,43 @@ import torch.nn as nn
 
 import display
 from dataset.libri import load_data
+import models
 from models import FCAE, CDAE, UNet
 
 
+def load_params_from_config(config, device):
+
+    if (isinstance(config, str)):
+        if (config.endswith('.json')):
+            name = config.split('/')[-1].split('.json')[0]
+            with open(config, 'r') as cfg_fo:
+                config = json.load(cfg_fo)
+        else:
+            msg = (
+                'If `config` path is provided,'
+                'it must be a path to a JSON file.')
+            raise TypeError(msg)
+    elif (isinstance(config, dict)):
+        name = config['network'].name
+    else:
+        msg = '`config` must be either dict or path to JSON file.'
+        raise TypeError(msg)
+
+    # Set pin_memory according to device
+    config['data']['pin_memory'] = (device == 'cuda')
+    # Convert string inputs to module functions
+    config['network'] = getattr(models, config['network'])
+    config['train']['criterion'] = getattr(nn, config['train']['criterion'])()
+
+    # Set config name
+    config['name'] = config.get('name', name)
+
+    return config
+
+
 def train(
-    device, model, train_dl, val_dl,
+    device, model, name,
+    train_dl, val_dl,
     epochs=100, learning_rate=1e-3, criterion=nn.MSELoss()):
 
     # Initialize training history
@@ -204,47 +237,33 @@ def set_device(verbose=True):
 
 if __name__ == '__main__':
 
+    # Argument parser for config path
+    parser = argparse.ArgumentParser(
+        description='Train speech denoiser.')
+    parser.add_argument(
+        '--config', required=True,
+        help='Path to JSON config file for training. Examples in configs/')
+    args = parser.parse_args()
+
     # Set compute device
     device = set_device(verbose=True)
 
-    params = {
-        'network': UNet,
-        'data': {
-            'N': 10,
-            'test_size': .10,
-            'data_root': 'data/noised_synth_babble',
-            'libri_root': 'data/LibriSpeech/dev-clean',
-            'batch_size': 8,
-            'pin_memory': (device == 'cuda'),
-            'conv': True,
-            'seed': 1,
-            'srate': 16000
-        },
-        'model': {
-            'in_shape': (256, 256),
-            'in_channels': 1,
-            'n_classes': 1,
-            'encoder_channels': (4, 8, 16),
-            'decoder_channels': (16, 8, 4),
-            'retain_dim': True
-        },
-        'train': {
-            'epochs': 2,
-            'learning_rate': 0.001,
-            'criterion': nn.BCEWithLogitsLoss()
-        }
-    }
+    params = load_params_from_config(args.config, device)
 
     model = params['network'](**params['model']).to(device)
     print(model)
     print('---')
 
     print('\nLoading data...\n')
-    data_train, train_dl, data_val, val_dl, data_test = load_data(**params['data'])
+    data_train, train_dl, data_val, val_dl, data_test = load_data(
+        **params['data'])
     display.show_split_sizes((data_train, data_val, data_test))
 
     print('\nTraining model...\n')
-    model, hist = train(device, model, train_dl, val_dl, **params['train'])
+    model, hist = train(
+        device, model, params['name'],
+        train_dl, val_dl,
+        **params['train'])
 
     # Plot Losses
     fig, ax = plt.subplots(figsize=(10, 5))

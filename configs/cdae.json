@@ -1,0 +1,24 @@
+{
+    "network": "CDAE",
+    "data": {
+        "N": 10,
+        "test_size": 0.10,
+        "data_root": "data/noised_synth_babble",
+        "libri_root": "data/LibriSpeech/dev-clean",
+        "batch_size": 8,
+        "conv": true,
+        "seed": 1,
+        "srate": 16000
+    },
+    "model": {
+        "n_layers": 4,
+        "z_dim": 8,
+        "in_channels": 1,
+        "batch_norm": true
+    },
+    "train": {
+        "epochs": 2,
+        "learning_rate": 0.001,
+        "criterion": "BCELoss"
+    }
+}

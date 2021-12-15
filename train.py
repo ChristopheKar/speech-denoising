@@ -199,7 +199,7 @@ def train(
 
             # Save model and history
             if (epoch > 1):
-                is_best = (history['val_losses'][-1] > history['val_losses'][-2])
+                is_best = (history['val_losses'][-1] < history['val_losses'][-2])
             else:
                 is_best = True
             if (is_best):

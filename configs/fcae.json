@@ -1,13 +1,13 @@
 {
     "network": "FCAE",
     "data": {
-        "N": 10,
+        "N": 100,
         "test_size": 0.10,
         "data_root": "data/noised_synth_babble",
         "libri_root": "data/LibriSpeech/dev-clean",
-        "batch_size": 8,
+        "batch_size": 64,
         "conv": false,
-        "seed": 1,
+        "seed": 0,
         "srate": 16000
     },
     "model": {
@@ -16,7 +16,7 @@
         "z_dim": 8
     },
     "train": {
-        "epochs": 100,
+        "epochs": 150,
         "learning_rate": 0.0001,
         "criterion": "MSELoss"
     }

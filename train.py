@@ -1,6 +1,7 @@
 import os
 import json
 import time
+import pickle
 import argparse
 
 import numpy as np
@@ -17,8 +18,19 @@ import models
 from models import FCAE, CDAE, UNet
 
 
-def load_params_from_config(config, device):
+def save_hist(hist, filepath):
+    with open(filepath, 'wb') as pkl_fo:
+        pickle.dump(hist, pkl_fo)
 
+
+def load_hist(filepath):
+    with open(filepath, 'rb') as pkl_fo:
+        hist = pickle.load(pkl_fo)
+    return hist
+
+
+def load_params_from_config(config, device):
+    """Load training parameters from JSON/ or dict config."""
     if (isinstance(config, str)):
         if (config.endswith('.json')):
             name = config.split('/')[-1].split('.json')[0]
@@ -49,8 +61,14 @@ def load_params_from_config(config, device):
 
 def train(
     device, model, name,
-    train_dl, val_dl,
+    train_dl, val_dl, output_dir='results',
     epochs=100, learning_rate=1e-3, criterion=nn.MSELoss()):
+
+    # Initialize results output dir
+    output_dir = os.path.join(output_dir, name)
+    history_fp = os.path.join(output_dir, 'history.pkl')
+    model_fp = os.path.join(output_dir, name + '.pth')
+    os.makedirs(output_dir, exist_ok=True)
 
     # Initialize training history
     history = {
@@ -61,7 +79,9 @@ def train(
             'epochs': epochs,
             'learning_rate': learning_rate,
             'critetion': criterion._get_name
-        }
+        },
+        'best_epoch': 0,
+        'model_path': model_fp,
     }
 
     # Initialize optimizer
@@ -176,9 +196,21 @@ def train(
             history['losses'].append(total_train_loss)
             history['val_losses'].append(total_val_loss)
             history['times'].append(time.time())
+
+            # Save model and history
+            if (epoch > 1):
+                is_best = (history['val_losses'][-1] > history['val_losses'][-2])
+            else:
+                is_best = True
+            if (is_best):
+                history['best_epoch'] = epoch
+                torch.save(model.state_dict(), model_fp)
+            save_hist(history, history_fp)
+
             # Update progress bar
             rec_losses = ['{:.3f}'.format(i) for i in history['val_losses'][-5:]]
             epoch_pbar.set_postfix({
+                'best epoch': history['best_epoch'],
                 'val. losses': ', '.join(rec_losses)
             })
             epoch_pbar.update(1)

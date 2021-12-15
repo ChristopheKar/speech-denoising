@@ -203,7 +203,7 @@ def train(
             else:
                 is_best = True
             if (is_best):
-                history['best_epoch'] = epoch
+                history['best_epoch'] = epoch + 1
                 torch.save(model.state_dict(), model_fp)
             save_hist(history, history_fp)
 

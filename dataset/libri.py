@@ -14,18 +14,19 @@ from . import transforms
 
 def load_data(
     N=10, test_size=.10,
-    data_root='data',
+    train_root='data/BabbledLibri/train',
+    test_root='data/BabbledLibri/test',
     libri_root='data/LibriSpeech/dev-clean',
     batch_size=8, pin_memory=False,
     conv=True, seed=1, srate=16000):
 
     # Create dataset splits
-    train_idxs, val_idxs, test_idxs = get_data_split_idxs(
+    train_idxs, val_idxs = get_data_split_idxs(
         N, test_size=test_size, seed=seed)
 
     # Load training data
     data_train = NoisyLibriSpeechDataset(
-        data_root=data_root, libri_root=libri_root,
+        data_root=train_root, libri_root=libri_root,
         include_idxs=train_idxs, test=False,
         max_val=None, conv=conv, seed=seed)
     train_dl = DataLoader(
@@ -35,7 +36,7 @@ def load_data(
 
     # Load validation data
     data_val = NoisyLibriSpeechDataset(
-        data_root=data_root, libri_root=libri_root,
+        data_root=train_root, libri_root=libri_root,
         include_idxs=val_idxs, test=False,
         max_val=data_train.scaler.max,
         conv=conv, seed=seed)
@@ -45,8 +46,8 @@ def load_data(
 
     # Load testing data
     data_test = NoisyLibriSpeechDataset(
-        data_root=data_root, libri_root=libri_root,
-        include_idxs=test_idxs, test=True,
+        data_root=test_root, libri_root=libri_root,
+        include_idxs=[], test=True,
         max_val=data_train.scaler.max,
         conv=conv, seed=seed)
 
@@ -81,6 +82,7 @@ class NoisyLibriSpeechDataset(Dataset):
         self.data_root = data_root
         dirnames = np.asarray(os.listdir(data_root))
         libri_idxs = [self._name_to_libri_idx(name) for name in dirnames]
+        libri_idxs = np.unique(libri_idxs)
 
         # If there are no provided indices to include,
         # randomly sample `size` indices
@@ -97,8 +99,8 @@ class NoisyLibriSpeechDataset(Dataset):
 
             # Randomly select subset of possible indexes
             self.subset_idxs = self.rng.choice(
-                np.unique(libri_idxs),
-                size=self.size, replace=False, shuffle=False)
+                libri_idxs, size=self.size,
+                replace=False, shuffle=False)
 
         # Use provided indices in dataset
         else:
@@ -193,14 +195,12 @@ class NoisyLibriSpeechDataset(Dataset):
 
         clean_mag = np.load(os.path.join(dirpath, 'clean_stft_mags.npy'))
         noised_mag = np.load(os.path.join(dirpath, 'noised_stft_mags.npy'))
-        noised_phase = np.load(os.path.join(dirpath, 'noised_stft_phases.npy'))
 
         if (transform):
             noised_mag = self.transform(noised_mag)
             clean_mag = self.transform(clean_mag)
 
         noised_mag = noised_mag[sample_idx, :, :]
-        noised_phase = noised_phase[sample_idx, :, :]
         clean_mag = clean_mag[sample_idx, :, :]
 
         # Reshape to fit use-case:
@@ -214,7 +214,6 @@ class NoisyLibriSpeechDataset(Dataset):
                 ax = 0
                 shape = (1, -1, -1)
 
-            noised_phase = np.expand_dims(noised_phase, axis=ax)
             if (transform):
                 noised_mag = noised_mag.expand(shape)
                 clean_mag = clean_mag.expand(shape)
@@ -228,9 +227,18 @@ class NoisyLibriSpeechDataset(Dataset):
         item = {
             'libri_index': libri_idx,
             'magnitude': noised_mag,
-            'phase': noised_phase,
             'target': clean_mag
         }
+
+        # Load noised phase only for test set
+        if (self.test):
+            noised_phase = np.load(os.path.join(dirpath, 'noised_stft_phases.npy'))
+            noised_phase = noised_phase[sample_idx, :, :]
+            if (self.conv):
+                noised_phase = np.expand_dims(noised_phase, axis=ax)
+
+            item['phase'] = noised_phase
+
 
         return item
 

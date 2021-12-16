@@ -10,9 +10,13 @@ if __name__ == '__main__':
 
     # Data options
     parser.add_argument(
-        '-n', '--N',
-        type=int, default=200, required=True,
-        help='number of LibriSpeech indexes to use')
+        '-s', '--start',
+        type=int, default=0, required=True,
+        help='first LibriSpeech index to use in dataset')
+    parser.add_argument(
+        '-e', '--end',
+        type=int, default=0, required=True,
+        help='last LibriSpeech index to use in dataset')
     parser.add_argument(
         '-iter', '--n-iters',
         type=int, default=1,
@@ -32,15 +36,12 @@ if __name__ == '__main__':
         help='path to dataset root')
     parser.add_argument(
         '-o', '--out-dir',
-        type=str, default='data/noised_synth_babble',
+        type=str, default='data/BabbledLibri',
         help='destination path to created dataset')
     # Boolean flag arguments
     parser.add_argument(
-        '--save-phase', action='store_true',
-        help='save original signal phase')
-    parser.add_argument(
-        '--save-noise', action='store_true',
-        help='save original signal spectrogram')
+        '--test', action='store_true',
+        help='dataset split is for testing')
     # Range arguments
     parser.add_argument(
         '-bg', '--babble-gain',
@@ -80,12 +81,14 @@ if __name__ == '__main__':
         n_samples_babble_range = np.arange(30, 71, 10)
 
     create_dataset(
-        args.data_root, args.out_dir, N=args.N,
+        args.data_root,
+        args.out_dir,
+        start_idx=args.start,
+        end_idx=args.end,
         g_babble_range=g_babble_range,
         g_room_range=g_room_range,
         n_samples_babble_range=n_samples_babble_range,
         n_iters=args.n_iters,
-        save_noise=args.save_noise,
-        save_phase=args.save_phase,
+        test=args.test,
         seed=args.seed,
         srate=args.srate)

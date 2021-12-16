@@ -3,7 +3,8 @@
     "data": {
         "N": 10,
         "test_size": 0.10,
-        "data_root": "data/noised_synth_babble",
+        "train_root": "data/BabbledLibri/train",
+        "test_root": "data/BabbledLibri/test",
         "libri_root": "data/LibriSpeech/dev-clean",
         "batch_size": 8,
         "conv": true,

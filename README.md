@@ -57,10 +57,17 @@ as provided by [torchaudio](https://pytorch.org/audio/stable/_modules/torchaudio
 which will take care of downloading and loading the dataset.
 
 However, this dataset is not used as is, but it is processed to add artificial noise.
-The entire dataset creation can be performed by running:
+The entire dataset creation can be performed by running the utility script `create_dataset.py`.
+Most experiments were run with the following setup:
 ```bash
-python create_dataset.py
+# Create training+validation set
+python create_dataset.py --start 0 --end 150 -o data/BabbledLibri/train
+# Create training+validation set
+python create_dataset.py --test --start 150 --end 160 -o data/BabbledLibri/test
 ```
+
+
+
 This script contains some defaults for creating a small noised dataset from `N=20` LibriSpeech
 utterances, which corresponds to a total of 1990 training samples, or around 33 minutes of noised
 speech.

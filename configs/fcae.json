@@ -3,9 +3,10 @@
     "data": {
         "N": 100,
         "test_size": 0.10,
-        "data_root": "data/noised_synth_babble",
+        "train_root": "data/BabbledLibri/train",
+        "test_root": "data/BabbledLibri/test",
         "libri_root": "data/LibriSpeech/dev-clean",
-        "batch_size": 64,
+        "batch_size": 8,
         "conv": false,
         "seed": 0,
         "srate": 16000
@@ -16,7 +17,7 @@
         "z_dim": 8
     },
     "train": {
-        "epochs": 150,
+        "epochs": 20,
         "learning_rate": 0.0001,
         "criterion": "MSELoss"
     }

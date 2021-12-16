@@ -23,40 +23,22 @@ __all__ = [
 
 
 def get_data_split_idxs(N, test_size=.10, seed=1):
+    # Create and shuffle indexes
     idxs = [i for i in range(N)]
     np.random.default_rng(seed).shuffle(idxs)
-
+    # Set split size
     s = int(N*test_size + 1)
+    # Create train and test indexes sets
+    test_idxs = idxs[:s]
+    train_idxs = idxs[s:]
 
-    val_idxs = idxs[:s]
-    test_idxs = idxs[s:2*s]
-    train_idxs = idxs[2*s:]
-
-    return train_idxs, val_idxs, test_idxs
-
-
-def load_babble_dataset(indexes, data_root='data/noised_synth_babble'):
-    data_dirs = {d.split('_')[1]: d for d in os.listdir(data_root)}
-    data_dirs = [data_dirs['s{}'.format(idx)] for idx in indexes]
-    clean_stft_mags = []
-    noised_stft_mags = []
-    noised_stft_phases = []
-    for data_dir in data_dirs:
-        clean_stft_mags.append(np.load(os.path.join(data_root, data_dir, 'clean_stft_mags.npy')))
-        noised_stft_phases.append(np.load(os.path.join(data_root, data_dir, 'noised_stft_phases.npy')))
-        noised_stft_mags.append(np.load(os.path.join(data_root, data_dir, 'noised_stft_mags.npy')))
-
-    clean_stft_mags = np.vstack(clean_stft_mags)
-    noised_stft_mags = np.vstack(noised_stft_mags)
-    noised_stft_phases = np.vstack(noised_stft_phases)
-
-    return clean_stft_mags, noised_stft_mags, noised_stft_phases
+    return train_idxs, test_idxs
 
 
-def load_librispeech_subset(subset_name, data_root='data', data_dir='LibriSpeech'):
+def load_librispeech_subset(subset, data_root='data', data_dir='LibriSpeech'):
     return torchaudio.datasets.LIBRISPEECH(
         root=data_root,
-        url=subset_name,
+        url=subset,
         folder_in_archive=data_dir,
         download=True)
 
@@ -111,10 +93,11 @@ def create_synthetic_babble(ds, max_len=None, n_samples=30, flip_prob=0.3, seed=
 
 
 def create_dataset(
-    libri_root, data_root, N=None,
+    libri_root, data_root,
+    start_idx=0, end_idx=None,
     g_babble_range=None, g_room_range=None,
-    n_samples_babble_range=None, n_iters=2,
-    save_noise=False, save_phase=True,
+    n_samples_babble_range=None,
+    n_iters=2, test=False,
     seed=1, srate=16000):
 
 
@@ -150,15 +133,18 @@ def create_dataset(
     if (n_samples_babble_range is None):
         n_samples_babble_range = np.arange(10, 71, 10)
 
-    if (N is None):
-        N = len(libri)
+    if (end_idx is None):
+        end_idx = len(libri)
 
     # Initialize progress bar
     print('Creating dataset...')
-    pbar = tqdm(total=N, ascii=True, ncols=79, desc='Progress')
+    pbar = tqdm(
+        total=(end_idx - start_idx),
+        ascii=True, ncols=79,
+        desc='Progress')
 
     # Main Loop
-    for idx in range(N):
+    for idx in range(start_idx, end_idx):
 
         # Load sample
         sample = libri[idx][0].numpy()[0]
@@ -252,28 +238,21 @@ def create_dataset(
                 with open(os.path.join(dirpath, 'meta.json'), 'w') as fobj:
                     json.dump(meta, fobj)
 
-                # Save original magnitudes and phases
+                # Save original magnitudes
                 np.save(
                     os.path.join(dirpath, 'clean_stft_mags.npy'),
                     sample_mags)
-                if (save_phase):
-                    np.save(
-                        os.path.join(dirpath, 'clean_stft_phases.npy'),
-                        sample_phases)
-                # Save noise magnitudes and phases
-                if (save_noise):
-                    np.save(
-                        os.path.join(dirpath, 'noise_stft_mags.npy'),
-                        noise_mags)
-                    np.save(
-                        os.path.join(dirpath, 'noise_stft_phases.npy'),
-                        noise_phases)
-                # Save noised magnitudes and phases
+                # Save noised magnitudes
                 np.save(
                     os.path.join(dirpath, 'noised_stft_mags.npy'),
                     noised_mags)
-                np.save(
-                    os.path.join(dirpath, 'noised_stft_phases.npy'),
-                    noised_phases)
+                # Save noised phases and noise magnitudes for test set
+                if (test):
+                    np.save(
+                        os.path.join(dirpath, 'noised_stft_phases.npy'),
+                        noised_phases)
+                    np.save(
+                        os.path.join(dirpath, 'noise_stft_mags.npy'),
+                        noise_mags)
 
         pbar.update(1)

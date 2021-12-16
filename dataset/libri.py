@@ -164,7 +164,7 @@ class NoisyLibriSpeechDataset(Dataset):
         return np.load(os.path.join(
             self.data_root,
             self.directories[idx],
-            'sample_stft_mags.npy')).shape[0]
+            'clean_stft_mags.npy')).shape[0]
 
 
     def _name_to_libri_idx(self, name):
@@ -191,7 +191,7 @@ class NoisyLibriSpeechDataset(Dataset):
         dirname = self.directories[dir_idx]
         dirpath = os.path.join(self.data_root, dirname)
 
-        clean_mag = np.load(os.path.join(dirpath, 'sample_stft_mags.npy'))
+        clean_mag = np.load(os.path.join(dirpath, 'clean_stft_mags.npy'))
         noised_mag = np.load(os.path.join(dirpath, 'noised_stft_mags.npy'))
         noised_phase = np.load(os.path.join(dirpath, 'noised_stft_phases.npy'))
 

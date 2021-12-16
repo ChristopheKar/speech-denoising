@@ -38,19 +38,19 @@ def get_data_split_idxs(N, test_size=.10, seed=1):
 def load_babble_dataset(indexes, data_root='data/noised_synth_babble'):
     data_dirs = {d.split('_')[1]: d for d in os.listdir(data_root)}
     data_dirs = [data_dirs['s{}'.format(idx)] for idx in indexes]
-    sample_stft_mags = []
+    clean_stft_mags = []
     noised_stft_mags = []
     noised_stft_phases = []
     for data_dir in data_dirs:
-        sample_stft_mags.append(np.load(os.path.join(data_root, data_dir, 'sample_stft_mags.npy')))
+        clean_stft_mags.append(np.load(os.path.join(data_root, data_dir, 'clean_stft_mags.npy')))
         noised_stft_phases.append(np.load(os.path.join(data_root, data_dir, 'noised_stft_phases.npy')))
         noised_stft_mags.append(np.load(os.path.join(data_root, data_dir, 'noised_stft_mags.npy')))
 
-    sample_stft_mags = np.vstack(sample_stft_mags)
+    clean_stft_mags = np.vstack(clean_stft_mags)
     noised_stft_mags = np.vstack(noised_stft_mags)
     noised_stft_phases = np.vstack(noised_stft_phases)
 
-    return sample_stft_mags, noised_stft_mags, noised_stft_phases
+    return clean_stft_mags, noised_stft_mags, noised_stft_phases
 
 
 def load_librispeech_subset(subset_name, data_root='data', data_dir='LibriSpeech'):
@@ -254,11 +254,11 @@ def create_dataset(
 
                 # Save original magnitudes and phases
                 np.save(
-                    os.path.join(dirpath, 'sample_stft_mags.npy'),
+                    os.path.join(dirpath, 'clean_stft_mags.npy'),
                     sample_mags)
                 if (save_phase):
                     np.save(
-                        os.path.join(dirpath, 'sample_stft_phases.npy'),
+                        os.path.join(dirpath, 'clean_stft_phases.npy'),
                         sample_phases)
                 # Save noise magnitudes and phases
                 if (save_noise):

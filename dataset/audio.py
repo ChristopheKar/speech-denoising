@@ -6,7 +6,7 @@ __all__ = [
     'mag_phase_to_wav'
 ]
 
-def wav_to_mag_phase(waveform, n_fft=1024, hop_len=64, win_len=512, window='hamming'):
+def wav_to_mag_phase(waveform, n_fft=512, hop_len=64, win_len=512, window='hamming'):
     """Convert waveform to Magnitude and Phase through STFT"""
 
     spectrogram = librosa.stft(
@@ -19,7 +19,10 @@ def wav_to_mag_phase(waveform, n_fft=1024, hop_len=64, win_len=512, window='hamm
     return mag, phase
 
 
-def mag_phase_to_wav(mag, phase=None, hop_len=64, length=None, win_len=512, window='hamming'):
+def mag_phase_to_wav(
+    mag, phase=None,
+    hop_len=64, length=None,
+    win_len=512, window='hamming'):
     """Convert Magnitude and Phase to Waveform through Inverse-STFT"""
     if (phase is None):
         waveform = librosa.griffinlim(

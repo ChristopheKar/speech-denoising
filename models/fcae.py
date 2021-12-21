@@ -18,8 +18,9 @@ class FCAE(nn.Module):
         # Get layer dimensions
         layer_sizes = self._get_layer_dims(n_layers, z_dim, self.n_input)
 
-        # Define ReLU "layer"
+        # Define activation "layers"
         self.relu = nn.ReLU()
+        self.sigmoid = nn.Sigmoid()
 
         # Encoder
         encoder_layers = []
@@ -75,7 +76,7 @@ class FCAE(nn.Module):
         # Encoder Chain
         z = self.encoder(x)
         # Decoder Chain
-        x = self.decoder(z)
+        x = self.sigmoid(self.decoder(z))
         # Reshape output
         out = x.reshape((-1, *self.in_shape))
         return out

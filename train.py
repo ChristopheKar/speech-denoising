@@ -78,7 +78,7 @@ def train(
         'params': {
             'epochs': epochs,
             'learning_rate': learning_rate,
-            'critetion': criterion._get_name
+            'criterion': criterion._get_name
         },
         'best_epoch': 0,
         'model_path': model_fp,

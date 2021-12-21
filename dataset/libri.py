@@ -32,7 +32,7 @@ def load_data(
     train_dl = DataLoader(
         data_train,
         batch_size=batch_size,
-        pin_memory=False)
+        pin_memory=pin_memory)
 
     # Load validation data
     data_val = NoisyLibriSpeechDataset(
@@ -42,7 +42,7 @@ def load_data(
         conv=conv, seed=seed)
     val_dl = DataLoader(
         data_val, batch_size=batch_size,
-        num_workers=0, pin_memory=False)
+        num_workers=0, pin_memory=pin_memory)
 
     # Load testing data
     data_test = NoisyLibriSpeechDataset(
@@ -174,7 +174,7 @@ class NoisyLibriSpeechDataset(Dataset):
 
 
     def __len__(self):
-        """Returns length of data set."""
+        """Return length of data set."""
         return self.size
 
 

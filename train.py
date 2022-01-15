@@ -194,8 +194,8 @@ def train(
                 val_pbar.update(1)
 
             # Update history
-            history['losses'].append(mean_train_loss)
-            history['val_losses'].append(mean_val_loss)
+            history['losses'].append(total_train_loss/len(train_dl))
+            history['val_losses'].append(total_val_loss/len(val_dl))
             history['times'].append(time.time())
 
             # Save model and history

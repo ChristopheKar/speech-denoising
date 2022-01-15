@@ -72,6 +72,7 @@ def train(
 
     # Initialize training history
     history = {
+        'dir': output_dir,
         'losses': [],
         'val_losses': [],
         'times': [],
@@ -248,11 +249,16 @@ def evaluate(device, model, data):
     denoised_waveform = data.spec_to_wav(
         sample['denoised_magnitude'], sample['phase'])
 
-    # Show results
-    fig, axes = display.show_results(
-        clean_waveform, noisy_waveform, denoised_waveform)
+    waveforms = {
+        'clean': clean_waveform,
+        'noisy': noisy_waveform,
+        'denoised': denoised_waveform
+    }
 
-    return fig, axes
+    # Show results
+    fig, axes = display.show_results(*waveforms.values(), srate=data.srate)
+
+    return fig, axes, waveforms
 
 
 def set_device(verbose=True):
@@ -300,8 +306,15 @@ if __name__ == '__main__':
     # Plot Losses
     fig, ax = plt.subplots(figsize=(10, 5))
     ax = display.plot_losses(ax, hist, repr(params['train']['criterion']))
+    fig.savefig(os.path.join(hist['dir'], 'losses.png'))
     fig.show()
 
     # Evaluate Model
-    fig, axes = evaluate(device, model, data_test)
+    fig, axes, waveforms = evaluate(device, model, data_test)
+    fig.savefig(os.path.join(hist['dir'], 'outputs.png'))
+    for key, wave in waveforms.items():
+        display.save_audio(
+        os.path.join(hist['dir'], key + '.wav'),
+        wave,
+        data_test.srate)
     fig.show()

@@ -3,7 +3,18 @@ from IPython.display import Audio, display
 import matplotlib.pyplot as plt
 
 import librosa
+import soundfile as sf
 import librosa.display
+
+
+def save_audio(filepath, waveform, sample_rate):
+    if (not isinstance(waveform, np.ndarray)):
+        waveform = waveform.numpy()
+
+    if (len(waveform.shape) == 1):
+        waveform = np.expand_dims(waveform, axis=1)
+
+    sf.write(filepath, waveform, sample_rate)
 
 
 def play_audio(waveform, sample_rate):

@@ -67,7 +67,7 @@ if __name__ == '__main__':
         g_babble_range = np.linspace(
             args.babble_gain[0], args.babble_gain[1], int(args.babble_gain[2]))
     else:
-        g_babble_range = np.linspace(0.01, 0.05, 5)
+        g_babble_range = np.linspace(0.05, 0.2, 4)
 
     if (len(args.room_gain) > 2):
         g_room_range = np.linspace(

@@ -127,7 +127,7 @@ def create_dataset(
 
     # Set default dataset options
     if (g_babble_range is None):
-        g_babble_range = np.linspace(0.01, 0.05, 5)
+        g_babble_range = np.linspace(0.05, 0.2, 4)
     if (g_room_range is None):
         g_room_range = np.linspace(0.5, 2, 4)
     if (n_samples_babble_range is None):

@@ -13,12 +13,15 @@
     },
     "model": {
         "in_shape": [256, 256],
-        "n_layers": 4,
-        "z_dim": 8
+        "encoder_dims": [512, 256, 128, 64],
+        "z_dim": 32,
+        "decoder_dims": [64, 128, 256, 512],
+        "out_activation": "sigmoid",
+        "dropout": 0.2
     },
     "train": {
         "epochs": 20,
-        "learning_rate": 0.0001,
+        "learning_rate": 0.001,
         "criterion": "MSELoss"
     }
 }

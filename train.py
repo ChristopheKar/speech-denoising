@@ -262,8 +262,11 @@ def evaluate(device, model, data):
 
 
 def eval_train(device, model, data, loader):
-    # Select training samples
+    # Select training sample
     sample = next(iter(loader))
+    # Set dataset to test mode
+    init_state = data.test
+    data.test = True
     sample['target'] = data.restore(sample['target'][:5])
     sample['magnitude'] = sample['magnitude'][:5]
     # Predict denoised magnitude
@@ -280,6 +283,8 @@ def eval_train(device, model, data, loader):
         'noisy': noisy_waveform,
         'denoised': denoised_waveform
     }
+    # Restore dataset to initial mode
+    data.test = init_state
 
     fig, axes = display.show_results(*waveforms.values(), srate=data.srate)
 

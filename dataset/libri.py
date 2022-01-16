@@ -277,6 +277,6 @@ class NoisyLibriSpeechDataset(Dataset):
             else:
                 item['phase'] = np.squeeze(item['phase'])
         else:
-            return self.inv_transform(self.squeeze(item))
+            return self.inv_transform(self.squeeze(item, force=self.test))
 
         return item

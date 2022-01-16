@@ -81,23 +81,26 @@ def show_results(clean_wav, noised_wav, denoised_wav, srate=16000):
 
     D = librosa.amplitude_to_db(
         np.abs(librosa.stft(clean_wav)), ref=np.max)
-    librosa.display.specshow(
+    im = librosa.display.specshow(
         D, y_axis='linear', sr=srate,
         hop_length=512, x_axis='time', ax=axes[0][1])
     axes[0][1].set_title('Original Clean Spectrogram')
+    fig.colorbar(im, ax=axes[0][1], format="%+2.f dB")
 
     D = librosa.amplitude_to_db(
         np.abs(librosa.stft(noised_wav)), ref=np.max)
-    librosa.display.specshow(
+    im = librosa.display.specshow(
         D, y_axis='linear', sr=srate,
         hop_length=512, x_axis='time', ax=axes[1][1])
     axes[1][1].set_title('Noised Spectrogram')
+    fig.colorbar(im, ax=axes[1][1], format="%+2.f dB")
 
     D = librosa.amplitude_to_db(
         np.abs(librosa.stft(denoised_wav)), ref=np.max)
-    librosa.display.specshow(
+    im = librosa.display.specshow(
         D, y_axis='linear', sr=srate,
         hop_length=512, x_axis='time', ax=axes[2][1])
     axes[2][1].set_title('Denoised Spectrogram')
+    fig.colorbar(im, ax=axes[2][1], format="%+2.f dB")
 
     return fig, axes

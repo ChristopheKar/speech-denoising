@@ -41,8 +41,9 @@ def load_data(
         max_val=data_train.scaler.max,
         conv=conv, seed=seed)
     val_dl = DataLoader(
-        data_val, batch_size=batch_size,
-        num_workers=0, pin_memory=pin_memory)
+        data_val,
+        batch_size=batch_size,
+        pin_memory=pin_memory)
 
     # Load testing data
     data_test = NoisyLibriSpeechDataset(
@@ -133,7 +134,6 @@ class NoisyLibriSpeechDataset(Dataset):
             self.size = len(self.directories)
         else:
             self.size = np.sum(self.sizes)
-
 
         # If conv is True, expand data dimensions to 1x256x256
         self.conv = conv
@@ -250,11 +250,14 @@ class NoisyLibriSpeechDataset(Dataset):
             return x
 
 
-    def spec_to_wav(self, magnitudes, phases):
+    def spec_to_wav(self, magnitudes, phases=None):
+
+        if (phases is None):
+            phases = [None]*len(magnitudes)
         wav = []
         for i in range(magnitudes.shape[0]):
             wav.extend(mag_phase_to_wav(
-                magnitudes[i, :, :], phases[i, :, :],
+                magnitudes[i], phases[i],
                 hop_len=64, win_len=512))
         return np.asarray(wav)
 

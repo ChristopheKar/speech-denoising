@@ -261,14 +261,39 @@ def evaluate(device, model, data):
     return fig, axes, waveforms
 
 
+def eval_train(device, model, data, loader):
+    # Select training samples
+    sample = next(iter(loader))
+    sample['target'] = data.restore(sample['target'][:5])
+    sample['magnitude'] = sample['magnitude'][:5]
+    # Predict denoised magnitude
+    sample['denoised_magnitude'] = data.restore(model.forward(
+        sample['magnitude'].to(device)))
+    sample['magnitude'] = data.restore(sample['magnitude'])
+    # Spectrogram to waveform
+    clean_waveform = data.spec_to_wav(sample['target'])
+    noisy_waveform = data.spec_to_wav(sample['magnitude'])
+    denoised_waveform = data.spec_to_wav(sample['denoised_magnitude'])
+
+    waveforms = {
+        'clean': clean_waveform,
+        'noisy': noisy_waveform,
+        'denoised': denoised_waveform
+    }
+
+    fig, axes = display.show_results(*waveforms.values(), srate=data.srate)
+
+    return fig, axes, waveforms
+
+
 def set_device(verbose=True):
     if torch.cuda.is_available():
-        device = torch.device("cuda")
+        device = torch.device('cuda')
     else:
-        device = torch.device("cpu")
+        device = torch.device('cpu')
 
     if (verbose):
-        print('device: ', device)
+        print('Compute Device: ', device)
 
     return device
 
@@ -310,11 +335,25 @@ if __name__ == '__main__':
     fig.show()
 
     # Evaluate Model
+    print('Evaluating model on test set...')
     fig, axes, waveforms = evaluate(device, model, data_test)
-    fig.savefig(os.path.join(hist['dir'], 'outputs.png'))
+    fig.suptitle('Testing Output')
+    fig.savefig(os.path.join(hist['dir'], 'test_output.png'))
     for key, wave in waveforms.items():
         display.save_audio(
-        os.path.join(hist['dir'], key + '.wav'),
+        os.path.join(hist['dir'], 'test_' + key + '.wav'),
+        wave,
+        data_test.srate)
+    fig.show()
+
+    # Evaluate Training Sample
+    print('Evaluating model on training set...')
+    fig, axes, waveforms = eval_train(device, model, data_train, train_dl)
+    fig.suptitle('Training Output')
+    fig.savefig(os.path.join(hist['dir'], 'train_output.png'))
+    for key, wave in waveforms.items():
+        display.save_audio(
+        os.path.join(hist['dir'], 'train_' + key + '.wav'),
         wave,
         data_test.srate)
     fig.show()

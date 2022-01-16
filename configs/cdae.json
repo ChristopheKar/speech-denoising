@@ -12,14 +12,15 @@
         "srate": 16000
     },
     "model": {
-        "n_layers": 4,
-        "z_dim": 8,
         "in_channels": 1,
+        "encoder_dims": [32, 64, 128],
+        "decoder_dims": [128, 64, 32],
+        "out_activation": "sigmoid",
         "batch_norm": true
     },
     "train": {
         "epochs": 2,
         "learning_rate": 0.001,
-        "criterion": "BCELoss"
+        "criterion": "MSELoss"
     }
 }

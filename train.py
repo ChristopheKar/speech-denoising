@@ -209,7 +209,7 @@ def train(
             save_hist(history, history_fp)
 
             # Update progress bar
-            rec_losses = ['{:.3f}'.format(i) for i in history['val_losses'][-5:]]
+            rec_losses = ['{:.3g}'.format(i) for i in history['val_losses'][-5:]]
             epoch_pbar.set_postfix({
                 'best epoch': history['best_epoch'],
                 'val. losses': ', '.join(rec_losses)

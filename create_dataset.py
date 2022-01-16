@@ -23,7 +23,7 @@ if __name__ == '__main__':
         help='number of iterations over each data sample')
     parser.add_argument(
         '--seed',
-        type=int, default=0,
+        type=int, default=1,
         help='seed value for random number generator')
     parser.add_argument(
         '-sr', '--srate',
@@ -46,12 +46,12 @@ if __name__ == '__main__':
     parser.add_argument(
         '-bg', '--babble-gain',
         type=float, nargs='+',
-        default=[0.05, 0.2, 5.],
+        default=[0.01, 0.05, 5.],
         help='babble gain range, args to np.linspace(lower, upper, n)')
     parser.add_argument(
         '-bs', '--babble-samples',
         type=int, nargs='+',
-        default=[30, 71, 10],
+        default=[40, 71, 10],
         help=('number of samples constituting babble range, '
             'args to np.arange(lower, upper, step)'))
     parser.add_argument(
@@ -67,18 +67,18 @@ if __name__ == '__main__':
         g_babble_range = np.linspace(
             args.babble_gain[0], args.babble_gain[1], int(args.babble_gain[2]))
     else:
-        g_babble_range = np.linspace(0.05, 0.2, 5)
+        g_babble_range = np.linspace(0.01, 0.05, 5)
 
     if (len(args.room_gain) > 2):
         g_room_range = np.linspace(
             args.room_gain[0], args.room_gain[1], int(args.room_gain[2]))
     else:
-        g_babble_range = np.linspace(0.5, 2, 4)
+        g_room_range = np.linspace(0.5, 2, 4)
 
-    if (len(args.room_gain) > 2):
+    if (len(args.babble_samples) > 2):
         n_samples_babble_range = np.arange(*args.babble_samples)
     else:
-        n_samples_babble_range = np.arange(30, 71, 10)
+        n_samples_babble_range = np.arange(40, 71, 10)
 
     create_dataset(
         args.data_root,

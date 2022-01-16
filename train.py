@@ -175,7 +175,7 @@ def train(
                 y = batch['target'].to(device)
 
                 # Forward pass and loss
-                y_pred = model(x)
+                y_pred = model.forward(x)
                 loss = criterion(y_pred, y)
 
                 # Update validation loss

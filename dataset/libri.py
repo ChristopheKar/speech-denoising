@@ -155,8 +155,10 @@ class NoisyLibriSpeechDataset(Dataset):
             ax = 0
             max_values = []
             for idx in range(self.__len__()):
-                sample = np.expand_dims(np.log1p(self.__getitem__(
-                    idx, transform=False)['magnitude']), axis=0)
+                sample = np.log1p(self.__getitem__(
+                    idx, transform=False)['magnitude'])
+                if (not self.conv):
+                    sample = np.expand_dims(sample, axis=0)
                 max_values.append(np.squeeze(
                     self.resizer(sample)).max(axis=ax))
 

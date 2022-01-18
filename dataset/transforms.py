@@ -74,20 +74,17 @@ class ResizeMagnitude:
 class MinMaxScaler:
     """Normalize array to [0, 1] range by min-max scaling."""
 
-    def __init__(self, max_val=None, min_val=None):
+    def __init__(self, max_val, min_val):
         super().__init__()
         self.max = max_val
         self.min = min_val
+        self.diff = max_val - min_val
+        if (isinstance(self.diff, np.ndarray)):
+            self.diff[self.diff == 0] = 1.
 
 
     def __call__(self, x):
-        if (self.max is None):
-            self.max = x.max()
-
-        if (self.min is None):
-            self.min = x.min()
-
-        return (x - self.min)/(self.max - self.min)
+        return (np.log1p(x) - self.min)/self.diff
 
 
     def __repr__(self):
@@ -101,4 +98,4 @@ class MinMaxScaler:
         if (self.min is None):
             self.min = 0
 
-        return x*(self.max - self.min) + self.min
+        return np.expm1(x)*self.diff + self.min

@@ -149,8 +149,22 @@ class NoisyLibriSpeechDataset(Dataset):
             h=self.target_h, w=self.target_w)
         self.unsizer = transforms.ResizeMagnitude(
             h=self.init_h, w=self.init_w)
-        self.scaler = transforms.MinMaxScaler(max_val=max_val)
 
+        # Initialize scaler
+        if (max_val is None):
+            ax = 0
+            max_values = []
+            for idx in range(self.__len__()):
+                sample = np.expand_dims(np.log1p(self.__getitem__(
+                    idx, transform=False)['magnitude']), axis=0)
+                max_values.append(np.squeeze(
+                    self.resizer(sample)).max(axis=ax))
+
+            max_val = np.vstack(max_values).max(axis=ax)
+
+        self.scaler = transforms.MinMaxScaler(max_val=max_val, min_val=0)
+
+        # Compose transforms and inverse transforms
         self.transform = Compose([
             self.resizer,
             self.scaler,
@@ -231,8 +245,9 @@ class NoisyLibriSpeechDataset(Dataset):
         }
 
         # Load noised phase only for test set
-        if (self.test):
-            noised_phase = np.load(os.path.join(dirpath, 'noised_stft_phases.npy'))
+        phase_path = os.path.join(dirpath, 'noised_stft_phases.npy')
+        if (self.test) or (os.path.exists(phase_path)):
+            noised_phase = np.load(phase_path)
             noised_phase = noised_phase[sample_idx, :, :]
             if (self.conv):
                 noised_phase = np.expand_dims(noised_phase, axis=ax)
@@ -264,7 +279,7 @@ class NoisyLibriSpeechDataset(Dataset):
 
     def restore(self, item):
         if (isinstance(item, dict)):
-            if (isinstance(item['libri_index'], torch.Tensor)):
+            if (isinstance(item.get('libri_index', None), torch.Tensor)):
                 item['libri_index'] = int(item['libri_index'].detach())
 
             item['magnitude'] = self.inv_transform(self.squeeze(

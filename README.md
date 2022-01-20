@@ -66,13 +66,15 @@ python create_dataset.py --start 0 --end 150 -o data/BabbledLibri/train
 python create_dataset.py --test --start 150 --end 160 -o data/BabbledLibri/test
 ```
 
-
-
 This script contains some defaults for creating a small noised dataset from `N=20` LibriSpeech
 utterances, which corresponds to a total of 1990 training samples, or around 33 minutes of noised
 speech.
 
 ### Training
 
-If the environment has been correctly setup, then running `python train.py` should
-train and evaluate a basic model.
+The training script takes in a configuration file in JSON format containing data, model, and
+training parameters. Example configurations for the three types of available models are
+available in `configs/`. To run a basic fully-connected autoencoder, run:
+```python
+python train.py --config configs/fcae.json
+```

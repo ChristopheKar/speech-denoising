@@ -3,6 +3,10 @@
 This project aims at exploring some basic deep learning techniques to denoise speech,
 using the [PyTorch](https://pytorch.org/) framework.
 
+:warning: PLEASE CHECKOUT BRANCH `dev` FOR WORKING RESULTS.
+Results on this branch `master` are not satisfactory, and a slightly
+different version with regards to the dataset creation, and pre-processing.
+
 ## Installation
 
 ### Dependencies

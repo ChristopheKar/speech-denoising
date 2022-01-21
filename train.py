@@ -266,7 +266,7 @@ def evaluate(
         axes[0].set_title('Clean Magnitude')
         axes[1].imshow(data.tensor.revert(y[i]), interpolation='none')
         axes[1].set_title('Noised Magnitude')
-        axes[2].imshow(mag, interpolation='none')
+        axes[2].imshow(data.tensor.revert(y_pred[i]), interpolation='none')
         axes[2].set_title('Denoised Magnitude')
         if (export_prefix):
             fig.savefig(export_prefix + 'magnitudes.jpg')

@@ -3,11 +3,11 @@
     "data": {
         "libri_path": "data/LibriSpeech/dev-clean",
         "babble_path": "data/babble.wav",
-        "train_mins": 1,
-        "val_mins": 1,
-        "test_mins": 1,
+        "train_mins": 30,
+        "val_mins": 5,
+        "test_mins": 5,
         "srate": 16000,
-        "batch_size": 8,
+        "batch_size": 32,
         "n_fft": 512,
         "hop_len": 256,
         "conv": false,
@@ -22,8 +22,8 @@
         "dropout": 0.25
     },
     "train": {
-        "epochs": 1,
-        "learning_rate": 0.0001,
+        "epochs": 50,
+        "learning_rate": 0.001,
         "criterion": "MSELoss"
     }
 }

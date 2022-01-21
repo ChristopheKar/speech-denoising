@@ -12,11 +12,10 @@ from tqdm.notebook import tqdm as tqdm_nb
 import torch
 import torch.nn as nn
 
-import display
-from dataset.libri import load_data
-import models
 from models import FCAE, CDAE, UNet
-
+from utils import display
+from utils import transforms
+from utils import metrics
 
 def save_hist(hist, filepath):
     with open(filepath, 'wb') as pkl_fo:
@@ -27,36 +26,6 @@ def load_hist(filepath):
     with open(filepath, 'rb') as pkl_fo:
         hist = pickle.load(pkl_fo)
     return hist
-
-
-def load_params_from_config(config, device):
-    """Load training parameters from JSON/ or dict config."""
-    if (isinstance(config, str)):
-        if (config.endswith('.json')):
-            name = config.split('/')[-1].split('.json')[0]
-            with open(config, 'r') as cfg_fo:
-                config = json.load(cfg_fo)
-        else:
-            msg = (
-                'If `config` path is provided,'
-                'it must be a path to a JSON file.')
-            raise TypeError(msg)
-    elif (isinstance(config, dict)):
-        name = config['network'].name
-    else:
-        msg = '`config` must be either dict or path to JSON file.'
-        raise TypeError(msg)
-
-    # Set pin_memory according to device
-    config['data']['pin_memory'] = (device == 'cuda')
-    # Convert string inputs to module functions
-    config['network'] = getattr(models, config['network'])
-    config['train']['criterion'] = getattr(nn, config['train']['criterion'])()
-
-    # Set config name
-    config['name'] = config.get('name', name)
-
-    return config
 
 
 def train(
@@ -129,8 +98,8 @@ def train(
             for batch in train_dl:
 
                 # Send inputs to device
-                x = batch['magnitude'].to(device)
-                y = batch['target'].to(device)
+                x = batch['noised'].to(device)
+                y = batch['clean'].to(device)
 
                 # Forward pass and loss
                 y_pred = model(x)
@@ -171,8 +140,8 @@ def train(
             val_pbar.reset()
             for batch in val_dl:
                 # Send inputs to device
-                x = batch['magnitude'].to(device)
-                y = batch['target'].to(device)
+                x = batch['noised'].to(device)
+                y = batch['clean'].to(device)
 
                 # Forward pass and loss
                 y_pred = model.forward(x)
@@ -226,139 +195,40 @@ def train(
     return model, history
 
 
-def evaluate(device, model, data):
-    # Set model to evaluation mode
-    model.eval()
-    # Load test sample
-    sample = data[0]
-    # Predict denoised magnitude
-    sample['denoised_magnitude'] = data.restore(model.forward(
-        sample['magnitude'].to(device)).squeeze())
-    # Inverse transform sample
-    sample = data.restore(sample)
+def evaluate(device, model, data, loader, fig=True, audio=True):
+    
+    scores = {'rmse': [], 'gain': []}
+    
+    for batch in loader:
+        x = batch['noised'].to(device)
+        y = batch['clean'].to(device)
+        y_pred = model(x)
 
-    # Load clean waveform signal and pad
-    clean_waveform = data.libri[sample['libri_index']][0].numpy()[0]
-    pad_len = sample['magnitude'].shape[0]*data.srate
-    pad_len = pad_len - clean_waveform.shape[0]
-    clean_waveform = np.pad(clean_waveform, (0, pad_len))
-
-    # Reconstruct noised and denoised waveforms
-    noisy_waveform = data.spec_to_wav(
-        sample['magnitude'], sample['phase'])
-    denoised_waveform = data.spec_to_wav(
-        sample['denoised_magnitude'], sample['phase'])
-
-    waveforms = {
-        'clean': clean_waveform,
-        'noisy': noisy_waveform,
-        'denoised': denoised_waveform
-    }
-
-    # Show results
-    fig, axes = display.show_results(*waveforms.values(), srate=data.srate)
-
-    return fig, axes, waveforms
-
-
-def eval_train(device, model, data, loader):
-    # Select training sample
-    sample = next(iter(loader))
-    # Set dataset to test mode
-    init_state = data.test
-    data.test = True
-    sample['target'] = data.restore(sample['target'][:5])
-    sample['magnitude'] = sample['magnitude'][:5]
-    # Predict denoised magnitude
-    sample['denoised_magnitude'] = data.restore(model.forward(
-        sample['magnitude'].to(device)))
-    sample['magnitude'] = data.restore(sample['magnitude'])
-    # Spectrogram to waveform
-    clean_waveform = data.spec_to_wav(sample['target'])
-    noisy_waveform = data.spec_to_wav(sample['magnitude'])
-    denoised_waveform = data.spec_to_wav(sample['denoised_magnitude'])
-
-    waveforms = {
-        'clean': clean_waveform,
-        'noisy': noisy_waveform,
-        'denoised': denoised_waveform
-    }
-    # Restore dataset to initial mode
-    data.test = init_state
-
-    fig, axes = display.show_results(*waveforms.values(), srate=data.srate)
-
-    return fig, axes, waveforms
-
-
-def set_device(verbose=True):
-    if torch.cuda.is_available():
-        device = torch.device('cuda')
-    else:
-        device = torch.device('cpu')
-
-    if (verbose):
-        print('Compute Device: ', device)
-
-    return device
-
-
-if __name__ == '__main__':
-
-    # Argument parser for config path
-    parser = argparse.ArgumentParser(
-        description='Train speech denoiser.')
-    parser.add_argument(
-        '--config', required=True,
-        help='Path to JSON config file for training. Examples in configs/')
-    args = parser.parse_args()
-
-    # Set compute device
-    device = set_device(verbose=True)
-
-    params = load_params_from_config(args.config, device)
-
-    model = params['network'](**params['model']).to(device)
-    print(model)
-    print('---')
-
-    print('\nLoading data...\n')
-    data_train, train_dl, data_val, val_dl, data_test = load_data(
-        **params['data'])
-    display.show_split_sizes((data_train, data_val, data_test))
-
-    print('\nTraining model...\n')
-    model, hist = train(
-        device, model, params['name'],
-        train_dl, val_dl,
-        **params['train'])
-
-    # Plot Losses
-    fig, ax = plt.subplots(figsize=(10, 5))
-    ax = display.plot_losses(ax, hist, repr(params['train']['criterion']))
-    fig.savefig(os.path.join(hist['dir'], 'losses.png'))
-    fig.show()
-
-    # Evaluate Model
-    print('Evaluating model on test set...')
-    fig, axes, waveforms = evaluate(device, model, data_test)
-    fig.suptitle('Testing Output')
-    fig.savefig(os.path.join(hist['dir'], 'test_output.png'))
-    for key, wave in waveforms.items():
-        display.save_audio(
-        os.path.join(hist['dir'], 'test_' + key + '.wav'),
-        wave,
-        data_test.srate)
-    fig.show()
-
-    # Evaluate Training Sample
-    print('Evaluating model on training set...')
-    fig, axes, waveforms = eval_train(device, model, data_train, train_dl)
-    fig.suptitle('Training Output')
-    fig.savefig(os.path.join(hist['dir'], 'train_output.png'))
-    for key, wave in waveforms.items():
-        display.save_audio(
-        os.path.join(hist['dir'], 'train_' + key + '.wav'),
-        wave,
-        data_test.srate)
-    fig.show()
+        for i in range(y_pred.shape[0]):
+            mag = data.inv_transform(y_pred[i])
+            phase = data.tensor.revert(batch['phase'][i])
+            cleaned_wav = transforms.mag_phase_to_wav(mag, length=data.srate)
+            clean_wav = data.tensor.revert(batch['waveforms']['clean'][i])
+            noise_wav = data.tensor.revert(batch['waveforms']['noise'][i])
+            scores['gain'].append(metrics.gain(
+                clean_wav, noise_wav, cleaned_wav))
+            scores['rmse'].append(metrics.rmse(
+                clean_wav, cleaned_wav))
+        
+    scores['rmse'] = np.mean(scores['rmse'])
+    scores['gain'] = np.mean(scores['gain'])
+    
+    if (fig):
+        fig, axes = plt.subplots(1, 3, figsize=(9, 5))
+        axes[0].imshow(x[i].detach(), interpolation='none')
+        axes[1].imshow(y[i].detach(), interpolation='none')
+        axes[2].imshow(y_pred[i].detach(), interpolation='none')
+        fig.show()
+    
+    if (audio):
+        print('Original Signal')
+        display.play_audio(clean_wav)
+        print('Denoised Signal')
+        display.play_audio(cleaned_wav)
+    
+    return scores

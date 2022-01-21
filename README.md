@@ -52,25 +52,19 @@ to the Docker image.
 
 ### Dataset
 
-The dataset used in this project is the [LibriSpeech](https://www.openslr.org/12/) dataset,
-as provided by [torchaudio](https://pytorch.org/audio/stable/_modules/torchaudio/datasets/librispeech.html),
-which will take care of downloading and loading the dataset.
+The dataset used in this project is the [LibriSpeech](https://www.openslr.org/12/) dataset.
 
-However, this dataset is not used as is, but it is processed to add artificial noise.
-The entire dataset creation can be performed by running the utility script `create_dataset.py`.
-Most experiments were run with the following setup:
+The code is tested on the `dev-clean` subset, but any subset should work. Download
+the LibriSpeech subset into the data directorty as such:
+
 ```bash
-# Create training+validation set
-python create_dataset.py --start 0 --end 150 -o data/BabbledLibri/train
-# Create training+validation set
-python create_dataset.py --test --start 150 --end 160 -o data/BabbledLibri/test
+# Change to data directory
+cd data
+# Download subset
+curl -O https://www.openslr.org/resources/12/dev-clean.tar.gz
+# Extract files from archive
+tar -zxvf dev-clean.tar.gz
 ```
-
-
-
-This script contains some defaults for creating a small noised dataset from `N=20` LibriSpeech
-utterances, which corresponds to a total of 1990 training samples, or around 33 minutes of noised
-speech.
 
 ### Training
 

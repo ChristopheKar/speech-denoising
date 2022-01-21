@@ -8,14 +8,48 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from tqdm.notebook import tqdm as tqdm_nb
-
+import soundfile as sf
 import torch
 import torch.nn as nn
 
+import models
 from models import FCAE, CDAE, UNet
 from utils import display
 from utils import transforms
 from utils import metrics
+from utils.data import load_data
+from utils.utils import set_seed, set_device
+
+
+def load_params_from_config(config, device):
+    """Load training parameters from JSON or dict config."""
+    if (isinstance(config, str)):
+        if (config.endswith('.json')):
+            name = config.split('/')[-1].split('.json')[0]
+            with open(config, 'r') as cfg_fo:
+                config = json.load(cfg_fo)
+        else:
+            msg = (
+                'If `config` path is provided,'
+                'it must be a path to a JSON file.')
+            raise TypeError(msg)
+    elif (isinstance(config, dict)):
+        name = config['network']
+    else:
+        msg = '`config` must be either dict or path to JSON file.'
+        raise TypeError(msg)
+
+    # Set config name
+    config['name'] = config.get('name', name)
+
+    # Set pin_memory according to device
+    config['data']['pin_memory'] = (device == 'cuda')
+    # Convert string inputs to module functions
+    config['network'] = getattr(models, config['network'])
+    config['train']['criterion'] = getattr(nn, config['train']['criterion'])()
+
+    return config
+
 
 def save_hist(hist, filepath):
     with open(filepath, 'wb') as pkl_fo:
@@ -195,10 +229,14 @@ def train(
     return model, history
 
 
-def evaluate(device, model, data, loader, fig=True, audio=True):
-    
+def evaluate(
+    device, model,
+    data, loader,
+    fig=True, audio=True,
+    export_prefix=None, verbose=True):
+
     scores = {'rmse': [], 'gain': []}
-    
+
     for batch in loader:
         x = batch['noised'].to(device)
         y = batch['clean'].to(device)
@@ -214,21 +252,86 @@ def evaluate(device, model, data, loader, fig=True, audio=True):
                 clean_wav, noise_wav, cleaned_wav))
             scores['rmse'].append(metrics.rmse(
                 clean_wav, cleaned_wav))
-        
+
     scores['rmse'] = np.mean(scores['rmse'])
     scores['gain'] = np.mean(scores['gain'])
-    
+
+    if (verbose):
+        for key, score in scores.items():
+            print('{}: {:.3f}'.format(key, score))
+
     if (fig):
         fig, axes = plt.subplots(1, 3, figsize=(9, 5))
         axes[0].imshow(x[i].detach(), interpolation='none')
+        axes[0].set_title('Clean Magnitude')
         axes[1].imshow(y[i].detach(), interpolation='none')
+        axes[1].set_title('Noised Magnitude')
         axes[2].imshow(y_pred[i].detach(), interpolation='none')
+        axes[2].set_title('Denoised Magnitude')
+        if (export_prefix):
+            fig.savefig(export_prefix + 'magnitudes.jpg')
         fig.show()
-    
+
     if (audio):
-        print('Original Signal')
-        display.play_audio(clean_wav)
-        print('Denoised Signal')
-        display.play_audio(cleaned_wav)
-    
+        wavs = [clean_wav, batch['waveforms']['noised'][i], cleaned_wav]
+        names = ['Original', 'Noised', 'Denoised']
+        for name, wav in zip(names, wavs):
+            print(name + ' Signal')
+            display.play_audio(wav)
+            if (export_prefix):
+                display.save_audio(
+                    export_prefix + name.lower() + '.wav', wav, data.srate)
+
     return scores
+
+
+if __name__ == '__main__':
+
+    # Argument parser for config path
+    parser = argparse.ArgumentParser(
+        description='Train speech denoiser.')
+    parser.add_argument(
+        '-c', '--config', required=True,
+        help='Path to JSON config file for training. Examples in configs/')
+    args = parser.parse_args()
+
+    # Set compute device
+    device = set_device(verbose=True)
+
+    params = load_params_from_config(args.config, device)
+
+    model = params['network'](**params['model']).to(device)
+    print(model)
+    print('---')
+
+    print('\nLoading data...\n')
+    train_data, train_dl, val_data, val_dl, test_data, test_dl = load_data(
+        **params['data'])
+
+    print('\nTraining model...\n')
+    model, hist = train(
+        device, model, params['name'],
+        train_dl, val_dl,
+        **params['train'])
+
+    # Plot Losses
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax = display.plot_losses(ax, hist, repr(params['train']['criterion']))
+    fig.savefig(os.path.join(hist['dir'], 'losses.png'))
+    fig.show()
+
+    # Evaluate model
+    scores = evaluate(
+        device, model,
+        train_data, train_dl,
+        fig=True, audio=True,
+        verbose=True,
+        export_prefix=os.path.join(hist['dir'], 'train_'))
+
+    # Evaluate model
+    scores = evaluate(
+        device, model,
+        test_data, test_dl,
+        fig=True, audio=True,
+        verbose=True,
+        export_prefix=os.path.join(hist['dir'], 'test_'))

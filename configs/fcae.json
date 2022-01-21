@@ -1,27 +1,29 @@
 {
     "network": "FCAE",
     "data": {
-        "N": 100,
-        "test_size": 0.10,
-        "train_root": "data/BabbledLibri/train",
-        "test_root": "data/BabbledLibri/test",
-        "libri_root": "data/LibriSpeech/dev-clean",
+        "libri_path": "data/LibriSpeech/dev-clean",
+        "babble_path": "data/babble.wav",
+        "train_mins": 1,
+        "val_mins": 1,
+        "test_mins": 1,
+        "srate": 16000,
         "batch_size": 8,
+        "n_fft": 512,
+        "hop_len": 256,
         "conv": false,
-        "seed": 0,
-        "srate": 16000
+        "gains": [0.2]
     },
     "model": {
-        "in_shape": [256, 256],
-        "encoder_dims": [512, 256, 128, 64],
-        "z_dim": 32,
-        "decoder_dims": [64, 128, 256, 512],
+        "in_shape": [256, 64],
+        "encoder_dims": [1024, 512, 256],
+        "z_dim": 128,
+        "decoder_dims": [256, 512, 1024],
         "out_activation": "sigmoid",
-        "dropout": 0.2
+        "dropout": 0.25
     },
     "train": {
-        "epochs": 20,
-        "learning_rate": 0.001,
+        "epochs": 1,
+        "learning_rate": 0.0001,
         "criterion": "MSELoss"
     }
 }

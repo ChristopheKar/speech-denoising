@@ -1,25 +1,27 @@
 {
     "network": "CDAE",
     "data": {
-        "N": 10,
-        "test_size": 0.10,
-        "train_root": "data/BabbledLibri/train",
-        "test_root": "data/BabbledLibri/test",
-        "libri_root": "data/LibriSpeech/dev-clean",
+        "libri_path": "data/LibriSpeech/dev-clean",
+        "babble_path": "data/babble.wav",
+        "train_mins": 30,
+        "val_mins": 5,
+        "test_mins": 5,
+        "srate": 16000,
         "batch_size": 8,
+        "n_fft": 512,
+        "hop_len": 256,
         "conv": true,
-        "seed": 1,
-        "srate": 16000
+        "gains": [0.2]
     },
     "model": {
         "in_channels": 1,
-        "encoder_dims": [32, 64, 128],
-        "decoder_dims": [128, 64, 32],
+        "encoder_dims": [64, 128, 256],
+        "decoder_dims": [256, 128, 64],
         "out_activation": "sigmoid",
         "batch_norm": true
     },
     "train": {
-        "epochs": 2,
+        "epochs": 50,
         "learning_rate": 0.001,
         "criterion": "MSELoss"
     }

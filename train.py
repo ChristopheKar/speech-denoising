@@ -262,11 +262,11 @@ def evaluate(
 
     if (fig):
         fig, axes = plt.subplots(1, 3, figsize=(9, 5))
-        axes[0].imshow(x[i].detach(), interpolation='none')
+        axes[0].imshow(data.tensor.revert(x[i]), interpolation='none')
         axes[0].set_title('Clean Magnitude')
-        axes[1].imshow(y[i].detach(), interpolation='none')
+        axes[1].imshow(data.tensor.revert(y[i]), interpolation='none')
         axes[1].set_title('Noised Magnitude')
-        axes[2].imshow(y_pred[i].detach(), interpolation='none')
+        axes[2].imshow(mag, interpolation='none')
         axes[2].set_title('Denoised Magnitude')
         if (export_prefix):
             fig.savefig(export_prefix + 'magnitudes.jpg')

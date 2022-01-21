@@ -32,7 +32,7 @@ def load_data(
         babble_path=babble_path,
         babble_gains=gains,
         n_fft=n_fft, hop_len=hop_len,
-        conv=False)
+        conv=conv)
 
     train_dl = DataLoader(
         train_data,
@@ -46,7 +46,7 @@ def load_data(
         babble_path=babble_path,
         babble_gains=gains,
         n_fft=n_fft, hop_len=hop_len,
-        conv=False)
+        conv=conv)
 
     val_dl = DataLoader(
         val_data,
@@ -60,7 +60,7 @@ def load_data(
         babble_path=babble_path,
         babble_gains=gains,
         n_fft=n_fft, hop_len=hop_len,
-        conv=False)
+        conv=conv)
 
     test_dl = DataLoader(
         test_data,
@@ -178,10 +178,7 @@ class BabbledLibri(Dataset):
 
     def __getitem__(self, idx):
 
-        sample = {'waveforms': {}}
-        for key, data in self.waveforms.items():
-            sample['waveforms'][key] = data[idx]
-
+        sample = {}
         sample['noised'] = self.transform(
             self.spectrograms['noised']['mags'][idx])
         sample['clean'] = self.transform(
@@ -189,7 +186,12 @@ class BabbledLibri(Dataset):
         sample['phase'] = self.spectrograms['noised']['phases'][idx]
 
         if (self.conv):
-            for key, signal in sample.items():
-                sample[key] = signal.expand((-1, 1, 1))
+            sample['clean'] = sample['clean'].expand((1, -1, -1))
+            sample['noised'] = sample['noised'].expand((1, -1, -1))
+
+        # Add waveforms to sample
+        sample['waveforms'] = {}
+        for key, data in self.waveforms.items():
+            sample['waveforms'][key] = data[idx]
 
         return sample

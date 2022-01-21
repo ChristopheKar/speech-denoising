@@ -1,26 +1,28 @@
 {
     "network": "UNet",
     "data": {
-        "N": 5,
-        "test_size": 0.10,
-        "train_root": "data/BabbledLibri/train",
-        "test_root": "data/BabbledLibri/test",
-        "libri_root": "data/LibriSpeech/dev-clean",
-        "batch_size": 8,
+        "libri_path": "data/LibriSpeech/dev-clean",
+        "babble_path": "data/babble.wav",
+        "train_mins": 60,
+        "val_mins": 10,
+        "test_mins": 10,
+        "srate": 16000,
+        "batch_size": 32,
+        "n_fft": 512,
+        "hop_len": 256,
         "conv": true,
-        "seed": 1,
-        "srate": 16000
+        "gains": [0.2]
     },
     "model": {
-        "in_shape": [256, 256],
+        "in_shape": [256, 64],
         "in_channels": 1,
         "n_classes": 1,
-        "encoder_channels": [4, 8, 16],
-        "decoder_channels": [16, 8, 4],
+        "encoder_channels": [16, 32, 64],
+        "decoder_channels": [64, 32, 16],
         "retain_dim": true
     },
     "train": {
-        "epochs": 10,
+        "epochs": 200,
         "learning_rate": 0.001,
         "criterion": "BCEWithLogitsLoss"
     }

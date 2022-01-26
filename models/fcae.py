@@ -1,4 +1,4 @@
-import numpy as np
+import torch
 from torch import nn
 
 
@@ -6,7 +6,7 @@ class FCAE(nn.Module):
     """Implements a basic fully-connected autoencoder network"""
 
     def __init__(
-        self, in_shape=(256, 256),
+        self, in_shape=(256, 1),
         encoder_dims=[128, 64, 32], decoder_dims=[32, 64, 128],
         z_dim=16, out_activation='relu', dropout=0.):
         super(FCAE, self).__init__()
@@ -15,6 +15,7 @@ class FCAE(nn.Module):
 
         # Define input dimensions
         self.in_shape = in_shape
+        in_shape = in_shape + [1]
         self.n_input = in_shape[0]*in_shape[1]
         self.flatten = nn.Flatten()
 
@@ -66,12 +67,8 @@ class FCAE(nn.Module):
 
     def forward(self, x):
 
-        # Flatten input
-        x = self.flatten(x)
-        # Encoder Chain
-        z = self.encoder(x)
-        # Decoder Chain
-        x = self.decoder(z)
-        # Reshape output
-        out = x.reshape((-1, *self.in_shape))
-        return out
+        preds = torch.zeros_like(x)
+        for t in range(x.shape[-1]):
+            preds[:, :, t] = self.decoder(self.encoder(x[:, :, t]))
+
+        return preds

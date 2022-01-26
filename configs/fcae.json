@@ -14,15 +14,15 @@
         "gains": [0.2]
     },
     "model": {
-        "in_shape": [256, 64],
-        "encoder_dims": [1024, 512, 256],
+        "in_shape": [256],
+        "encoder_dims": [128, 64, 32],
         "z_dim": 128,
-        "decoder_dims": [256, 512, 1024],
+        "decoder_dims": [32, 64, 128],
         "out_activation": "sigmoid",
         "dropout": 0.25
     },
     "train": {
-        "epochs": 50,
+        "epochs": 200,
         "learning_rate": 0.001,
         "criterion": "MSELoss"
     }
